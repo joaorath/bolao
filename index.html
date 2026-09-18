@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#081624">
+  <meta name="description" content="MVP do Charqueons League, o bolão digital do futebol paraense.">
+  <title>Charqueons League</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navegação principal">
+      <a class="brand" href="#" data-view="home" aria-label="Charqueons League - Início">
+        <span class="brand-mark">CL</span>
+        <span><strong>Charqueons</strong><small>LEAGUE</small></span>
+      </a>
+      <nav class="side-nav">
+        <button class="nav-item active" data-view="home"><span>⌂</span> Início</button>
+        <button class="nav-item" data-view="pools"><span>⚽</span> Bolões</button>
+        <button class="nav-item" data-view="live"><span>●</span> Ao vivo <b>1</b></button>
+        <button class="nav-item" data-view="ranking"><span>♜</span> Ranking</button>
+        <button class="nav-item" data-view="profile"><span>◉</span> Perfil</button>
+      </nav>
+      <div class="season-card">
+        <span class="eyebrow">TEMPORADA 2026</span>
+        <strong>Campeonato Paraense</strong>
+        <div><span>Rodada 4 de 8</span><span>50%</span></div>
+        <div class="progress"><i></i></div>
+      </div>
+      <button class="demo-user" data-view="profile">
+        <span class="avatar">JR</span>
+        <span><strong>João Rath</strong><small>Conta demonstração</small></span>
+        <span>›</span>
+      </button>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <a class="mobile-brand" href="#" data-view="home"><span class="brand-mark">CL</span><strong>Charqueons</strong></a>
+        <div class="top-actions">
+          <button class="icon-btn" id="notificationBtn" aria-label="Notificações">♢<i></i></button>
+          <span class="avatar">JR</span>
+        </div>
+      </header>
+
+      <section id="home" class="view active-view">
+        <div class="welcome-row">
+          <div><span class="eyebrow accent">CAMPEONATO PARAENSE</span><h1>Olá, João! <span>👋</span></h1><p>Pronto para mais uma rodada?</p></div>
+          <button class="primary-btn" data-view="pools">＋ Novo bolão</button>
+        </div>
+
+        <div class="spotlight-grid">
+          <article class="live-card panel" id="liveMatchCard">
+            <div class="panel-head"><span class="live-pill"><i></i> AO VIVO</span><span id="matchClock">67'</span></div>
+            <div class="match-line"><span>CAMPEONATO PARAENSE · RODADA 4</span><span>Mangueirão</span></div>
+            <div class="scoreboard">
+              <div class="team"><span class="crest remo">R</span><strong>Remo</strong></div>
+              <div class="score"><strong id="homeScore">1</strong><span>×</span><strong id="awayScore">0</strong></div>
+              <div class="team"><span class="crest paysandu">P</span><strong>Paysandu</strong></div>
+            </div>
+            <div class="prediction-status">
+              <div><span>SEU PALPITE</span><strong>Remo 2 × 1 Paysandu</strong></div>
+              <div><span>SE TERMINASSE AGORA</span><strong id="projectedPoints" class="good">+3 pontos</strong></div>
+            </div>
+            <button class="ghost-btn full" data-view="live">Acompanhar partida <span>→</span></button>
+          </article>
+
+          <article class="streak-card panel">
+            <div class="streak-icon">🔥</div>
+            <div><span class="eyebrow">SUA SEQUÊNCIA</span><strong>5 jogos</strong><p>pontuando seguidos</p></div>
+            <div class="streak-dots"><i></i><i></i><i></i><i></i><i></i><i class="next"></i></div>
+            <small>Seu recorde é 7 jogos. Faltam 2!</small>
+          </article>
+        </div>
+
+        <div class="section-title"><div><h2>Seus bolões</h2><p>Acompanhe sua posição em cada disputa</p></div><button class="text-btn" data-view="pools">Ver todos →</button></div>
+        <div class="pools-grid">
+          <button class="pool-card featured" data-view="pool-detail">
+            <div class="pool-top"><span class="pool-logo">CL</span><span class="active-pill">ATIVO</span></div>
+            <h3>Charqueons da Resenha</h3><p>Campeonato Paraense · 12 participantes</p>
+            <div class="pool-stats"><span><small>SUA POSIÇÃO</small><strong>2º <em>↑1</em></strong></span><span><small>PONTOS</small><strong>38</strong></span><span><small>LÍDER</small><strong>42</strong></span></div>
+            <div class="pool-footer"><span>Próxima: Dom, 17:00</span><span>Entrar →</span></div>
+          </button>
+          <button class="pool-card" data-view="pool-detail">
+            <div class="pool-top"><span class="pool-logo alt">AM</span><span class="active-pill">ATIVO</span></div>
+            <h3>Amigos do Mangueirão</h3><p>Campeonato Paraense · 8 participantes</p>
+            <div class="pool-stats"><span><small>SUA POSIÇÃO</small><strong>4º <em>—</em></strong></span><span><small>PONTOS</small><strong>31</strong></span><span><small>LÍDER</small><strong>45</strong></span></div>
+            <div class="pool-footer"><span>Próxima: Dom, 17:00</span><span>Entrar →</span></div>
+          </button>
+        </div>
+
+        <div class="content-grid">
+          <section>
+            <div class="section-title compact"><div><h2>Próximas partidas</h2><p>Rodada 4 · Palpites abertos</p></div><span class="countdown">Encerram em 1d 04h</span></div>
+            <div id="predictionList" class="match-list"></div>
+          </section>
+          <aside class="ranking-preview panel">
+            <div class="section-title compact"><div><h2>Ranking geral</h2><p>Charqueons da Resenha</p></div><button class="text-btn" data-view="ranking">Ver →</button></div>
+            <div id="miniRanking"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="pools" class="view"><div class="page-head"><span class="eyebrow accent">SEUS CAMPEONATOS</span><h1>Bolões</h1><p>Entre em uma disputa ou crie a sua.</p></div><div class="action-grid"><button class="action-card" id="createPool"><span>＋</span><strong>Criar novo bolão</strong><small>Escolha as regras e convide seus amigos</small></button><button class="action-card" id="joinPool"><span>#</span><strong>Entrar com código</strong><small>Use o convite enviado pelo organizador</small></button></div><div class="section-title"><h2>Em andamento</h2></div><div class="pools-grid" id="poolsClone"></div></section>
+
+      <section id="pool-detail" class="view"><button class="back-btn" data-view="pools">← Voltar</button><div class="page-head"><span class="eyebrow accent">CAMPEONATO PARAENSE</span><h1>Charqueons da Resenha</h1><p>12 participantes · Rodada 4 de 8</p></div><div class="tabs"><button class="active">Visão geral</button><button>Palpites</button><button data-view="ranking">Ranking</button><button>Rodadas</button></div><div class="detail-banner panel"><div><span class="eyebrow">SUA POSIÇÃO</span><strong>2º lugar</strong><p>Você está a 4 pontos da liderança</p></div><div class="big-number">38 <small>pts</small></div></div><div class="content-grid"><div><div class="section-title compact"><h2>Partidas da rodada</h2></div><div id="detailMatches" class="match-list"></div></div><aside class="ranking-preview panel"><div class="section-title compact"><h2>Top 5</h2></div><div id="detailRanking"></div></aside></div></section>
+
+      <section id="live" class="view"><div class="page-head"><span class="live-pill"><i></i> AO VIVO AGORA</span><h1>Remo × Paysandu</h1><p>Campeonato Paraense · Rodada 4 · Mangueirão</p></div><article class="live-stage panel"><div class="stadium-glow"></div><div class="match-minute" id="liveClock">67'</div><div class="scoreboard large"><div class="team"><span class="crest remo">R</span><strong>Remo</strong></div><div class="score"><strong id="liveHomeScore">1</strong><span>×</span><strong id="liveAwayScore">0</strong></div><div class="team"><span class="crest paysandu">P</span><strong>Paysandu</strong></div></div><button id="simulateGoal" class="primary-btn">Simular próximo lance</button></article><div class="live-columns"><article class="panel"><div class="section-title compact"><div><h2>Seu palpite</h2><p>Bloqueado desde o início da partida</p></div><span class="lock">🔒</span></div><div class="prediction-big">Remo <strong>2 × 1</strong> Paysandu</div><div class="live-projection"><span>Situação atual</span><strong id="liveProjection">Acertando o resultado · 3 pts</strong></div></article><article class="panel timeline"><div class="section-title compact"><h2>Lances</h2><span id="eventStatus">Atualização automática</span></div><div id="timeline"><div><b>67'</b><span>⚽</span><p><strong>Gol — Remo</strong><small>Finalização dentro da área</small></p></div><div><b>52'</b><span>🟨</span><p><strong>Cartão amarelo — Paysandu</strong><small>Falta no meio-campo</small></p></div><div><b>46'</b><span>▶</span><p><strong>Começa o 2º tempo</strong></p></div><div><b>45'</b><span>Ⅱ</span><p><strong>Intervalo</strong></p></div></div></article></div></section>
+
+      <section id="ranking" class="view"><div class="page-head"><span class="eyebrow accent">CHARQUEONS DA RESENHA</span><h1>Ranking geral</h1><p>Classificação após 3 rodadas encerradas.</p></div><div class="ranking-podium"><div><span class="avatar blue">JR</span><small>2º</small><strong>João</strong><b>38 pts</b></div><div class="winner"><span class="crown">♛</span><span class="avatar yellow">PS</span><small>1º</small><strong>Pedro</strong><b>42 pts</b></div><div><span class="avatar purple">MP</span><small>3º</small><strong>Marina</strong><b>37 pts</b></div></div><article class="panel full-ranking"><div class="table-head"><span>POSIÇÃO</span><span>JOGADOR</span><span>EXATOS</span><span>ACERTOS</span><span>PONTOS</span></div><div id="fullRanking"></div></article></section>
+
+      <section id="profile" class="view"><div class="profile-head panel"><span class="avatar huge">JR</span><div><span class="eyebrow accent">CONTA DEMONSTRAÇÃO</span><h1>João Rath</h1><p>Membro desde a Rodada 1</p></div><button class="ghost-btn">Editar perfil</button></div><div class="stats-grid"><article class="stat-card"><span>🎯</span><small>PLACARES EXATOS</small><strong>5</strong><p>19% dos palpites</p></article><article class="stat-card"><span>✅</span><small>RESULTADOS CORRETOS</small><strong>12</strong><p>46% dos palpites</p></article><article class="stat-card"><span>✕</span><small>RESULTADOS ERRADOS</small><strong>9</strong><p>35% dos palpites</p></article><article class="stat-card"><span>🔥</span><small>SEQUÊNCIA ATUAL</small><strong>5</strong><p>Recorde: 7 jogos</p></article></div><article class="panel performance"><div><span class="eyebrow">PRECISÃO DE RESULTADO</span><strong>65%</strong><p>Você pontuou em 17 de 26 partidas</p></div><div class="donut"><span>65<small>%</small></span></div></article></section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Navegação móvel"><button class="active" data-view="home"><span>⌂</span>Início</button><button data-view="pools"><span>⚽</span>Bolões</button><button data-view="live" class="live-nav"><span>●</span>Ao vivo</button><button data-view="ranking"><span>♜</span>Ranking</button><button data-view="profile"><span>◉</span>Perfil</button></nav>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+  <dialog id="poolDialog"><button class="dialog-close" aria-label="Fechar">×</button><span class="eyebrow accent" id="dialogEyebrow">NOVO BOLÃO</span><h2 id="dialogTitle">Crie sua disputa</h2><p id="dialogText">Dê um nome ao bolão para começar.</p><label id="dialogLabel">Nome do bolão<input id="dialogInput" type="text" placeholder="Ex.: Bolão da Faculdade"></label><button class="primary-btn full" id="dialogAction">Continuar</button></dialog>
+  <script src="app.js"></script>
+</body>
+</html>
