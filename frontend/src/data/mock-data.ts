@@ -32,6 +32,7 @@ export const liveMatch: Match = {
 };
 
 export const currentPrediction: Prediction = {
+  poolId: "charqueons-resenha",
   matchId: liveMatch.id,
   homeScore: 2,
   awayScore: 1,
@@ -47,6 +48,8 @@ export const pools: PoolSummary[] = [
     position: 2,
     points: 38,
     leaderPoints: 42,
+    visibility: "PRIVATE",
+    isOwner: true,
   },
   {
     id: "amigos-mangueirao",
@@ -56,6 +59,8 @@ export const pools: PoolSummary[] = [
     position: 4,
     points: 31,
     leaderPoints: 45,
+    visibility: "PRIVATE",
+    isOwner: false,
   },
 ];
 
@@ -96,5 +101,74 @@ export const ranking: RankingEntry[] = [
     points: 31,
     exactScores: 3,
     correctResults: 12,
+  },
+];
+
+export const upcomingMatches: Match[] = [
+  {
+    id: "tuna-castanhal-rodada-4",
+    competition: "Campeonato Paraense",
+    round: 4,
+    stadium: "Souza",
+    startsAt: "2026-02-09T17:00:00-03:00",
+    status: "OPEN",
+    homeTeam: {
+      id: "tuna-luso",
+      name: "Tuna Luso",
+      abbreviation: "TUN",
+      primaryColor: "#198754",
+      secondaryColor: "#dc3545",
+    },
+    awayTeam: {
+      id: "castanhal",
+      name: "Castanhal",
+      abbreviation: "CAS",
+      primaryColor: "#e7c928",
+      secondaryColor: "#111827",
+    },
+  },
+  {
+    id: "aguia-bragantino-rodada-4",
+    competition: "Campeonato Paraense",
+    round: 4,
+    stadium: "Zinho Oliveira",
+    startsAt: "2026-02-09T18:30:00-03:00",
+    status: "OPEN",
+    homeTeam: {
+      id: "aguia-maraba",
+      name: "Águia de Marabá",
+      abbreviation: "AGM",
+      primaryColor: "#b91c1c",
+      secondaryColor: "#facc15",
+    },
+    awayTeam: {
+      id: "bragantino-pa",
+      name: "Bragantino-PA",
+      abbreviation: "BRA",
+      primaryColor: "#2563eb",
+      secondaryColor: "#ffffff",
+    },
+  },
+  {
+    id: "cameta-sao-francisco-rodada-4",
+    competition: "Campeonato Paraense",
+    round: 4,
+    stadium: "Parque do Bacurau",
+    startsAt: "2026-02-10T20:00:00-03:00",
+    status: "OPEN",
+    homeTeam: {
+      id: "cameta",
+      name: "Cametá",
+      abbreviation: "CAM",
+      primaryColor: "#dc2626",
+      secondaryColor: "#ffffff",
+    },
+    awayTeam: {
+      id: "sao-francisco",
+      name: "São Francisco",
+      abbreviation: "SFR",
+      primaryColor: "#2563eb",
+      secondaryColor: "#ffffff",
+    },
   },
 ];

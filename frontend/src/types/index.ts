@@ -30,10 +30,12 @@ export type Match = {
 };
 
 export type Prediction = {
+  poolId: string;
   matchId: string;
   homeScore: number;
   awayScore: number;
   locked: boolean;
+  savedAt?: string;
 };
 
 export type PoolSummary = {

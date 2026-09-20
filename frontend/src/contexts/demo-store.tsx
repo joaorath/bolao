@@ -13,23 +13,52 @@ import { pools as initialPools } from "@/data/mock-data";
 import type {
   CreatePoolInput,
   PoolSummary,
+  Prediction,
 } from "@/types";
 
-const STORAGE_KEY = "charqueons:custom-pools";
+const POOLS_STORAGE_KEY =
+  "charqueons:custom-pools";
+
+const HIDDEN_POOLS_STORAGE_KEY =
+  "charqueons:hidden-pools";
+
+const PREDICTIONS_STORAGE_KEY =
+  "charqueons:predictions";
 
 type JoinPoolResult = {
   success: boolean;
   message: string;
 };
 
+type SavePredictionInput = {
+  poolId: string;
+  matchId: string;
+  homeScore: number;
+  awayScore: number;
+};
+
 type DemoStoreContextValue = {
   pools: PoolSummary[];
+  predictions: Prediction[];
+
   createPool: (
     input: CreatePoolInput,
   ) => PoolSummary;
+
   joinPool: (
     inviteCode: string,
   ) => JoinPoolResult;
+
+  removePool: (poolId: string) => void;
+
+  savePrediction: (
+    input: SavePredictionInput,
+  ) => Prediction;
+
+  getPrediction: (
+    poolId: string,
+    matchId: string,
+  ) => Prediction | undefined;
 };
 
 const DemoStoreContext =
@@ -42,6 +71,24 @@ function createInviteCode() {
     .toUpperCase();
 }
 
+function readStorage<T>(
+  key: string,
+  fallback: T,
+): T {
+  const storedValue = localStorage.getItem(key);
+
+  if (!storedValue) {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(storedValue) as T;
+  } catch {
+    localStorage.removeItem(key);
+    return fallback;
+  }
+}
+
 export function DemoStoreProvider({
   children,
 }: {
@@ -51,21 +98,35 @@ export function DemoStoreProvider({
     PoolSummary[]
   >([]);
 
+  const [hiddenPoolIds, setHiddenPoolIds] =
+    useState<string[]>([]);
+
+  const [predictions, setPredictions] =
+    useState<Prediction[]>([]);
+
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const savedPools = localStorage.getItem(STORAGE_KEY);
+    setCustomPools(
+      readStorage<PoolSummary[]>(
+        POOLS_STORAGE_KEY,
+        [],
+      ),
+    );
 
-    if (savedPools) {
-      try {
-        const parsedPools: PoolSummary[] =
-          JSON.parse(savedPools);
+    setHiddenPoolIds(
+      readStorage<string[]>(
+        HIDDEN_POOLS_STORAGE_KEY,
+        [],
+      ),
+    );
 
-        setCustomPools(parsedPools);
-      } catch {
-        localStorage.removeItem(STORAGE_KEY);
-      }
-    }
+    setPredictions(
+      readStorage<Prediction[]>(
+        PREDICTIONS_STORAGE_KEY,
+        [],
+      ),
+    );
 
     setHydrated(true);
   }, []);
@@ -76,15 +137,31 @@ export function DemoStoreProvider({
     }
 
     localStorage.setItem(
-      STORAGE_KEY,
+      POOLS_STORAGE_KEY,
       JSON.stringify(customPools),
     );
-  }, [customPools, hydrated]);
 
-  const pools = useMemo(
-    () => [...initialPools, ...customPools],
-    [customPools],
-  );
+    localStorage.setItem(
+      HIDDEN_POOLS_STORAGE_KEY,
+      JSON.stringify(hiddenPoolIds),
+    );
+
+    localStorage.setItem(
+      PREDICTIONS_STORAGE_KEY,
+      JSON.stringify(predictions),
+    );
+  }, [
+    customPools,
+    hiddenPoolIds,
+    predictions,
+    hydrated,
+  ]);
+
+  const pools = useMemo(() => {
+    return [...initialPools, ...customPools].filter(
+      (pool) => !hiddenPoolIds.includes(pool.id),
+    );
+  }, [customPools, hiddenPoolIds]);
 
   function createPool(
     input: CreatePoolInput,
@@ -118,7 +195,7 @@ export function DemoStoreProvider({
       .trim()
       .toUpperCase();
 
-    const alreadyJoined = customPools.some(
+    const alreadyJoined = pools.some(
       (pool) =>
         pool.inviteCode === normalizedCode,
     );
@@ -164,10 +241,82 @@ export function DemoStoreProvider({
     };
   }
 
+  function removePool(poolId: string) {
+    const isCustomPool = customPools.some(
+      (pool) => pool.id === poolId,
+    );
+
+    if (isCustomPool) {
+      setCustomPools((currentPools) =>
+        currentPools.filter(
+          (pool) => pool.id !== poolId,
+        ),
+      );
+
+      return;
+    }
+
+    setHiddenPoolIds((currentIds) => {
+      if (currentIds.includes(poolId)) {
+        return currentIds;
+      }
+
+      return [...currentIds, poolId];
+    });
+  }
+
+  function savePrediction(
+    input: SavePredictionInput,
+  ): Prediction {
+    const prediction: Prediction = {
+      poolId: input.poolId,
+      matchId: input.matchId,
+      homeScore: input.homeScore,
+      awayScore: input.awayScore,
+      locked: false,
+      savedAt: new Date().toISOString(),
+    };
+
+    setPredictions((currentPredictions) => {
+      const otherPredictions =
+        currentPredictions.filter(
+          (currentPrediction) =>
+            !(
+              currentPrediction.poolId ===
+                input.poolId &&
+              currentPrediction.matchId ===
+                input.matchId
+            ),
+        );
+
+      return [
+        ...otherPredictions,
+        prediction,
+      ];
+    });
+
+    return prediction;
+  }
+
+  function getPrediction(
+    poolId: string,
+    matchId: string,
+  ) {
+    return predictions.find(
+      (prediction) =>
+        prediction.poolId === poolId &&
+        prediction.matchId === matchId,
+    );
+  }
+
   const value: DemoStoreContextValue = {
     pools,
+    predictions,
     createPool,
     joinPool,
+    removePool,
+    savePrediction,
+    getPrediction,
   };
 
   return (
