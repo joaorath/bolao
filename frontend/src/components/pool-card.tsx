@@ -57,7 +57,7 @@ export function PoolCard({
 
       <div className="mt-6 flex gap-3">
         <Link
-          href="/palpites"
+          href={`/boloes/${pool.id}`}
           className="flex-1 rounded-xl bg-lime-400 px-4 py-3 text-center text-sm font-extrabold text-slate-950"
         >
           Abrir bolão

@@ -40,6 +40,7 @@ type SavePredictionInput = {
 type DemoStoreContextValue = {
   pools: PoolSummary[];
   predictions: Prediction[];
+  ready: boolean;
 
   createPool: (
     input: CreatePoolInput,
@@ -177,6 +178,7 @@ export function DemoStoreProvider({
       points: 0,
       leaderPoints: 0,
       inviteCode: createInviteCode(),
+      matchSelectionMode: "ALL_COMPETITION",
       isOwner: true,
     };
 
@@ -225,6 +227,7 @@ export function DemoStoreProvider({
       points: 18,
       leaderPoints: 39,
       inviteCode: normalizedCode,
+      matchSelectionMode: "ALL_COMPETITION",
       visibility: "PRIVATE",
       isOwner: false,
     };
@@ -312,6 +315,7 @@ export function DemoStoreProvider({
   const value: DemoStoreContextValue = {
     pools,
     predictions,
+    ready: hydrated,
     createPool,
     joinPool,
     removePool,
