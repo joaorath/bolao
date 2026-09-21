@@ -1,0 +1,174 @@
+import type {
+  Match,
+  PoolSummary,
+  Prediction,
+  RankingEntry,
+} from "@/types";
+
+export const liveMatch: Match = {
+  id: "remo-paysandu-rodada-4",
+  competition: "Campeonato Paraense",
+  round: 4,
+  stadium: "Mangueirão",
+  startsAt: "2026-02-08T17:00:00-03:00",
+  status: "LIVE",
+  elapsedMinutes: 67,
+  homeScore: 1,
+  awayScore: 0,
+  homeTeam: {
+    id: "remo",
+    name: "Remo",
+    abbreviation: "REM",
+    primaryColor: "#1d4f91",
+    secondaryColor: "#ffffff",
+  },
+  awayTeam: {
+    id: "paysandu",
+    name: "Paysandu",
+    abbreviation: "PSC",
+    primaryColor: "#56a9dd",
+    secondaryColor: "#ffffff",
+  },
+};
+
+export const currentPrediction: Prediction = {
+  poolId: "charqueons-resenha",
+  matchId: liveMatch.id,
+  homeScore: 2,
+  awayScore: 1,
+  locked: true,
+};
+
+export const pools: PoolSummary[] = [
+  {
+    id: "charqueons-resenha",
+    name: "Charqueons da Resenha",
+    competition: "Campeonato Paraense",
+    participantCount: 12,
+    position: 2,
+    points: 38,
+    leaderPoints: 42,
+    visibility: "PRIVATE",
+    isOwner: true,
+  },
+  {
+    id: "amigos-mangueirao",
+    name: "Amigos do Mangueirão",
+    competition: "Campeonato Paraense",
+    participantCount: 8,
+    position: 4,
+    points: 31,
+    leaderPoints: 45,
+    visibility: "PRIVATE",
+    isOwner: false,
+  },
+];
+
+export const ranking: RankingEntry[] = [
+  {
+    id: "pedro",
+    name: "Pedro Silva",
+    initials: "PS",
+    position: 1,
+    points: 42,
+    exactScores: 6,
+    correctResults: 13,
+  },
+  {
+    id: "joao",
+    name: "João Rath",
+    initials: "JR",
+    position: 2,
+    points: 38,
+    exactScores: 5,
+    correctResults: 12,
+    isCurrentUser: true,
+  },
+  {
+    id: "marina",
+    name: "Marina Paes",
+    initials: "MP",
+    position: 3,
+    points: 37,
+    exactScores: 4,
+    correctResults: 14,
+  },
+  {
+    id: "lucas",
+    name: "Lucas Lima",
+    initials: "LL",
+    position: 4,
+    points: 31,
+    exactScores: 3,
+    correctResults: 12,
+  },
+];
+
+export const upcomingMatches: Match[] = [
+  {
+    id: "tuna-castanhal-rodada-4",
+    competition: "Campeonato Paraense",
+    round: 4,
+    stadium: "Souza",
+    startsAt: "2026-02-09T17:00:00-03:00",
+    status: "OPEN",
+    homeTeam: {
+      id: "tuna-luso",
+      name: "Tuna Luso",
+      abbreviation: "TUN",
+      primaryColor: "#198754",
+      secondaryColor: "#dc3545",
+    },
+    awayTeam: {
+      id: "castanhal",
+      name: "Castanhal",
+      abbreviation: "CAS",
+      primaryColor: "#e7c928",
+      secondaryColor: "#111827",
+    },
+  },
+  {
+    id: "aguia-bragantino-rodada-4",
+    competition: "Campeonato Paraense",
+    round: 4,
+    stadium: "Zinho Oliveira",
+    startsAt: "2026-02-09T18:30:00-03:00",
+    status: "OPEN",
+    homeTeam: {
+      id: "aguia-maraba",
+      name: "Águia de Marabá",
+      abbreviation: "AGM",
+      primaryColor: "#b91c1c",
+      secondaryColor: "#facc15",
+    },
+    awayTeam: {
+      id: "bragantino-pa",
+      name: "Bragantino-PA",
+      abbreviation: "BRA",
+      primaryColor: "#2563eb",
+      secondaryColor: "#ffffff",
+    },
+  },
+  {
+    id: "cameta-sao-francisco-rodada-4",
+    competition: "Campeonato Paraense",
+    round: 4,
+    stadium: "Parque do Bacurau",
+    startsAt: "2026-02-10T20:00:00-03:00",
+    status: "OPEN",
+    homeTeam: {
+      id: "cameta",
+      name: "Cametá",
+      abbreviation: "CAM",
+      primaryColor: "#dc2626",
+      secondaryColor: "#ffffff",
+    },
+    awayTeam: {
+      id: "sao-francisco",
+      name: "São Francisco",
+      abbreviation: "SFR",
+      primaryColor: "#2563eb",
+      secondaryColor: "#ffffff",
+    },
+  },
+];
