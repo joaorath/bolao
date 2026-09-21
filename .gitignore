@@ -1,19 +1,14 @@
 # Dependências
 node_modules/
-frontend/node_modules/
-backend/node_modules/
+**/node_modules/
 
 # Builds
-frontend/.next/
-frontend/out/
-backend/dist/
+.next/
+**/.next/
+dist/
+**/dist/
 
-# Variáveis de ambiente
+# Variáveis locais
 .env
 .env.*
 !.env.example
-
-# Sistema e editor
-.DS_Store
-Thumbs.db
-.vscode/
