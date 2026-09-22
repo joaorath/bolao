@@ -7,6 +7,14 @@ export type MatchStatus =
   | "POSTPONED"
   | "CANCELLED";
 
+export type PoolVisibility =
+  | "PUBLIC"
+  | "PRIVATE";
+
+export type MatchSelectionMode =
+  | "ALL_COMPETITION"
+  | "MANUAL";
+
 export type Team = {
   id: string;
   name: string;
@@ -49,6 +57,7 @@ export type PoolSummary = {
   leaderPoints: number;
   inviteCode?: string;
   visibility?: PoolVisibility;
+  matchSelectionMode: MatchSelectionMode;
   isOwner?: boolean;
 };
 
@@ -62,10 +71,6 @@ export type RankingEntry = {
   correctResults: number;
   isCurrentUser?: boolean;
 };
-
-export type PoolVisibility =
-  | "PUBLIC"
-  | "PRIVATE";
 
 export type CreatePoolInput = {
   name: string;

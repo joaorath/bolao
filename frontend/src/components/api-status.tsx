@@ -1,49 +1,56 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 
-type ApiStatusResponse = {
-  status: string;
-  application: string;
-  timestamp: string;
-};
+import { getApiHealth } from "@/lib/api";
+
+import type { ApiHealthResponse } from "@/types/api";
 
 type ConnectionStatus =
   | "loading"
   | "connected"
   | "disconnected";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "http://localhost:3333/api";
-
 export function ApiStatus() {
   const [status, setStatus] =
     useState<ConnectionStatus>("loading");
 
-  const [apiInformation, setApiInformation] =
-    useState<ApiStatusResponse | null>(null);
+  const [
+    apiInformation,
+    setApiInformation,
+  ] = useState<ApiHealthResponse | null>(
+    null,
+  );
 
   useEffect(() => {
+    const controller = new AbortController();
+
     async function checkApi() {
       try {
-        const response = await fetch(`${API_URL}/health`);
-
-        if (!response.ok) {
-          throw new Error("A API retornou um erro");
-        }
-
-        const data: ApiStatusResponse =
-          await response.json();
+        const data = await getApiHealth(
+          controller.signal,
+        );
 
         setApiInformation(data);
         setStatus("connected");
-      } catch {
+      } catch (error) {
+        if (
+          error instanceof DOMException &&
+          error.name === "AbortError"
+        ) {
+          return;
+        }
+
         setStatus("disconnected");
       }
     }
 
     checkApi();
+
+    return () => controller.abort();
   }, []);
 
   if (status === "loading") {
@@ -64,7 +71,8 @@ export function ApiStatus() {
         </p>
 
         <p className="mt-1 text-sm text-slate-400">
-          Verifique se o servidor está rodando na porta 3333.
+          Verifique se o servidor está rodando na
+          porta 3333.
         </p>
       </div>
     );

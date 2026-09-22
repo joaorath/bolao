@@ -1,8 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 
-import type { Match, Prediction } from "@/types";
+import { calculateScore } from "@/lib/api";
+
+import type {
+  Match,
+  Prediction,
+} from "@/types";
+
+import type { ApiPredictionScore } from "@/types/api";
 
 type LiveMatchCardProps = {
   match: Match;
@@ -30,47 +40,6 @@ const simulatedEvents = [
   },
 ];
 
-function getResult(
-  homeScore: number,
-  awayScore: number,
-) {
-  if (homeScore > awayScore) {
-    return "HOME_WIN";
-  }
-
-  if (homeScore < awayScore) {
-    return "AWAY_WIN";
-  }
-
-  return "DRAW";
-}
-
-function calculateProjectedPoints(
-  homeScore: number,
-  awayScore: number,
-  prediction: Prediction,
-) {
-  const exactScore =
-    homeScore === prediction.homeScore &&
-    awayScore === prediction.awayScore;
-
-  if (exactScore) {
-    return 5;
-  }
-
-  const currentResult = getResult(
-    homeScore,
-    awayScore,
-  );
-
-  const predictedResult = getResult(
-    prediction.homeScore,
-    prediction.awayScore,
-  );
-
-  return currentResult === predictedResult ? 3 : 0;
-}
-
 export function LiveMatchCard({
   match,
   prediction,
@@ -87,19 +56,79 @@ export function LiveMatchCard({
     match.elapsedMinutes ?? 0,
   );
 
-  const [eventIndex, setEventIndex] = useState(0);
-  const [lastEvent, setLastEvent] = useState(
-    "Gol do Remo aos 67 minutos",
+  const [eventIndex, setEventIndex] =
+    useState(0);
+
+  const [lastEvent, setLastEvent] =
+    useState(
+      "Gol do Remo aos 67 minutos",
+    );
+
+  const [
+    projectedScore,
+    setProjectedScore,
+  ] = useState<ApiPredictionScore | null>(
+    null,
   );
 
-  const projectedPoints = calculateProjectedPoints(
+  const [scoreError, setScoreError] =
+    useState(false);
+
+  useEffect(() => {
+    const controller =
+      new AbortController();
+
+    async function updateProjectedScore() {
+      setProjectedScore(null);
+      setScoreError(false);
+
+      try {
+        const score = await calculateScore(
+          {
+            predictedHomeScore:
+              prediction.homeScore,
+
+            predictedAwayScore:
+              prediction.awayScore,
+
+            officialHomeScore:
+              homeScore,
+
+            officialAwayScore:
+              awayScore,
+          },
+          controller.signal,
+        );
+
+        setProjectedScore(score);
+      } catch (error) {
+        if (
+          error instanceof DOMException &&
+          error.name === "AbortError"
+        ) {
+          return;
+        }
+
+        setProjectedScore(null);
+        setScoreError(true);
+      }
+    }
+
+    updateProjectedScore();
+
+    return () => {
+      controller.abort();
+    };
+  }, [
     homeScore,
     awayScore,
-    prediction,
-  );
+    prediction.homeScore,
+    prediction.awayScore,
+  ]);
 
   function simulateNextEvent() {
-    const event = simulatedEvents[eventIndex];
+    const event =
+      simulatedEvents[eventIndex];
 
     if (!event) {
       return;
@@ -109,26 +138,55 @@ export function LiveMatchCard({
     setAwayScore(event.awayScore);
     setMinute(event.minute);
     setLastEvent(event.message);
-    setEventIndex((current) => current + 1);
+
+    setEventIndex(
+      (currentIndex) =>
+        currentIndex + 1,
+    );
   }
 
-  const finished = eventIndex >= simulatedEvents.length;
+  const finished =
+    eventIndex >= simulatedEvents.length;
 
   return (
     <article className="overflow-hidden rounded-2xl border border-slate-700 bg-gradient-to-br from-[#15334a] to-[#0b1d2b] p-6">
       <div className="flex items-center justify-between">
-        <span className="flex items-center gap-2 rounded-full bg-red-500/10 px-3 py-1 text-xs font-extrabold text-red-400">
-          <span className="h-2 w-2 rounded-full bg-red-500" />
-          {finished ? "ENCERRADO" : "AO VIVO"}
+        <span
+          className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-extrabold ${
+            finished
+              ? "bg-slate-500/10 text-slate-400"
+              : "bg-red-500/10 text-red-400"
+          }`}
+        >
+          <span
+            className={`h-2 w-2 rounded-full ${
+              finished
+                ? "bg-slate-500"
+                : "bg-red-500"
+            }`}
+          />
+
+          {finished
+            ? "ENCERRADO"
+            : "AO VIVO"}
         </span>
 
-        <strong className="text-lime-400">
-          {finished ? "FIM" : `${minute}'`}
+        <strong
+          className={
+            finished
+              ? "text-slate-400"
+              : "text-lime-400"
+          }
+        >
+          {finished
+            ? "FIM"
+            : `${minute}'`}
         </strong>
       </div>
 
       <p className="mt-5 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
-        {match.competition} · Rodada {match.round}
+        {match.competition} · Rodada{" "}
+        {match.round}
       </p>
 
       <div className="my-7 grid grid-cols-[1fr_auto_1fr] items-center gap-5">
@@ -153,7 +211,9 @@ export function LiveMatchCard({
             {homeScore}
           </strong>
 
-          <span className="text-slate-500">×</span>
+          <span className="text-slate-500">
+            ×
+          </span>
 
           <strong className="text-5xl">
             {awayScore}
@@ -194,9 +254,27 @@ export function LiveMatchCard({
             SE TERMINASSE AGORA
           </span>
 
-          <strong className="mt-1 block text-emerald-400">
-            +{projectedPoints} pontos
-          </strong>
+          {scoreError ? (
+            <strong className="mt-1 block text-red-400">
+              Servidor indisponível
+            </strong>
+          ) : !projectedScore ? (
+            <strong className="mt-1 block text-slate-400">
+              Calculando...
+            </strong>
+          ) : (
+            <strong
+              className={`mt-1 block ${
+                projectedScore.points === 0
+                  ? "text-red-400"
+                  : "text-emerald-400"
+              }`}
+            >
+              {projectedScore.points === 0
+                ? "0 pontos"
+                : `+${projectedScore.points} pontos`}
+            </strong>
+          )}
         </div>
       </div>
 

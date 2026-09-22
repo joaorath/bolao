@@ -48,7 +48,9 @@ export const pools: PoolSummary[] = [
     position: 2,
     points: 38,
     leaderPoints: 42,
+    inviteCode: "CHARQ26",
     visibility: "PRIVATE",
+    matchSelectionMode: "ALL_COMPETITION",
     isOwner: true,
   },
   {
@@ -59,7 +61,9 @@ export const pools: PoolSummary[] = [
     position: 4,
     points: 31,
     leaderPoints: 45,
+    inviteCode: "MANGA26",
     visibility: "PRIVATE",
+    matchSelectionMode: "ALL_COMPETITION",
     isOwner: false,
   },
 ];

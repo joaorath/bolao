@@ -5,8 +5,30 @@ import Link from "next/link";
 import { PoolCard } from "@/components/pool-card";
 import { useDemoStore } from "@/contexts/demo-store";
 
+import type { PoolSummary } from "@/types";
+
 export default function PoolsPage() {
-  const { pools } = useDemoStore();
+  const {
+    pools,
+    removePool,
+    ready,
+  } = useDemoStore();
+
+  function handleRemovePool(pool: PoolSummary) {
+    const action = pool.isOwner
+      ? "excluir"
+      : "sair";
+
+    const confirmed = window.confirm(
+      `Tem certeza de que deseja ${action} do bolão "${pool.name}"?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    removePool(pool.id);
+  }
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -71,14 +93,31 @@ export default function PoolsPage() {
           </span>
         </div>
 
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
-          {pools.map((pool) => (
-            <PoolCard
-              key={pool.id}
-              pool={pool}
-            />
-          ))}
-        </div>
+        {!ready ? (
+          <div className="mt-5 rounded-2xl border border-slate-800 bg-[#0e2131] p-6 text-slate-400">
+            Carregando seus bolões...
+          </div>
+        ) : pools.length === 0 ? (
+          <div className="mt-5 rounded-2xl border border-dashed border-slate-700 p-8 text-center">
+            <h3 className="font-extrabold">
+              Você ainda não participa de nenhum bolão
+            </h3>
+
+            <p className="mt-2 text-sm text-slate-400">
+              Crie um novo ou use um código de convite.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-5 grid gap-5 md:grid-cols-2">
+            {pools.map((pool) => (
+              <PoolCard
+                key={pool.id}
+                pool={pool}
+                onRemove={handleRemovePool}
+              />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
