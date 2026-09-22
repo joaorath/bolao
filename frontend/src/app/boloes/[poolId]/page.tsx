@@ -5,20 +5,17 @@ import {
   useParams,
   useRouter,
 } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
+import { PoolRanking } from "@/components/pool-ranking";
 import { PredictionList } from "@/components/prediction-list";
 import { useDemoStore } from "@/contexts/demo-store";
 import {
   liveMatch,
-  ranking,
   upcomingMatches,
 } from "@/data/mock-data";
 
-import type {
-  PoolSummary,
-  RankingEntry,
-} from "@/types";
+import type { PoolSummary } from "@/types";
 
 const tabs = [
   {
@@ -63,14 +60,6 @@ export default function PoolDetailsPage() {
   const pool = pools.find(
     (currentPool) =>
       currentPool.id === params.poolId,
-  );
-
-  const poolRanking = useMemo(
-    () =>
-      pool
-        ? buildPoolRanking(pool)
-        : [],
-    [pool],
   );
 
   async function copyInviteCode() {
@@ -232,7 +221,7 @@ export default function PoolDetailsPage() {
         )}
 
         {activeTab === "ranking" && (
-          <RankingTab entries={poolRanking} />
+          <PoolRanking poolId={pool.id} />
         )}
 
         {activeTab === "rounds" && (
@@ -331,67 +320,6 @@ function OverviewTab({
   );
 }
 
-function RankingTab({
-  entries,
-}: {
-  entries: RankingEntry[];
-}) {
-  return (
-    <section className="overflow-hidden rounded-2xl border border-slate-800 bg-[#0e2131]">
-      <div className="border-b border-slate-800 p-6">
-        <h2 className="text-xl font-extrabold">
-          Ranking do bolão
-        </h2>
-
-        <p className="mt-1 text-sm text-slate-400">
-          Classificação específica deste bolão.
-        </p>
-      </div>
-
-      <div className="divide-y divide-slate-800">
-        {entries.map((entry) => (
-          <div
-            key={entry.id}
-            className={`grid grid-cols-[48px_1fr_auto] items-center gap-4 p-5 ${
-              entry.isCurrentUser
-                ? "bg-lime-400/5"
-                : ""
-            }`}
-          >
-            <strong
-              className={
-                entry.position <= 3
-                  ? "text-lime-400"
-                  : "text-slate-500"
-              }
-            >
-              {entry.position}º
-            </strong>
-
-            <div>
-              <strong>
-                {entry.name}
-                {entry.isCurrentUser
-                  ? " (você)"
-                  : ""}
-              </strong>
-
-              <p className="mt-1 text-xs text-slate-500">
-                {entry.exactScores} placares exatos ·{" "}
-                {entry.correctResults} resultados
-              </p>
-            </div>
-
-            <strong className="text-lg">
-              {entry.points} pts
-            </strong>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function RoundsTab() {
   const rounds = Array.from(
     new Set(
@@ -481,50 +409,4 @@ function Team({
       </strong>
     </div>
   );
-}
-
-function buildPoolRanking(
-  pool: PoolSummary,
-): RankingEntry[] {
-  const adjustedRanking = ranking.map(
-    (entry, index) => {
-      if (entry.isCurrentUser) {
-        return {
-          ...entry,
-          points: pool.points,
-        };
-      }
-
-      if (index === 0) {
-        return {
-          ...entry,
-          points: pool.leaderPoints,
-        };
-      }
-
-      return {
-        ...entry,
-        points: Math.max(
-          0,
-          pool.leaderPoints - index * 3,
-        ),
-      };
-    },
-  );
-
-  return adjustedRanking
-    .sort((first, second) => {
-      if (second.points !== first.points) {
-        return second.points - first.points;
-      }
-
-      return (
-        second.exactScores -
-        first.exactScores
-      );
-    })
-    .map((entry, index) => ({
-      ...entry,
-      position: index + 1,
-    }));
 }

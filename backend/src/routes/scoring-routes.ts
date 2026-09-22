@@ -15,7 +15,12 @@ const scoringRouter = Router();
 
 scoringRouter.get(
   "/ranking",
-  (_request, response) => {
+  (request, response) => {
+    const requestedPoolId =
+      typeof request.query.poolId === "string"
+        ? request.query.poolId
+        : "charqueons-resenha";
+
     const ranking = calculateRanking(
       demoPredictions,
       demoResults,
@@ -23,7 +28,7 @@ scoringRouter.get(
     );
 
     response.status(200).json({
-      poolId: "charqueons-resenha",
+      poolId: requestedPoolId,
       round: 4,
       ranking,
     });
@@ -49,13 +54,15 @@ scoringRouter.post(
 
     const validScores = scores.every(
       (score) =>
-        Number.isInteger(score) && score >= 0,
+        Number.isInteger(score) &&
+        score >= 0 &&
+        score <= 99,
     );
 
     if (!validScores) {
       response.status(400).json({
         error:
-          "Todos os placares devem ser números inteiros maiores ou iguais a zero.",
+          "Todos os placares devem ser números inteiros entre 0 e 99.",
       });
 
       return;
