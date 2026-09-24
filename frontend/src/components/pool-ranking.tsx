@@ -1,21 +1,37 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useState,
 } from "react";
 
-import { getPoolRanking } from "@/lib/api";
-
-import type {
-  ApiRankingEntry,
-  ApiRankingResponse,
-} from "@/types/api";
+import { createClient } from "@/lib/supabase/client";
 
 type RankingStatus =
   | "loading"
   | "success"
   | "error";
+
+type RankingEntry = {
+  userId: string;
+  userName: string;
+  position: number;
+  points: number;
+  exactScores: number;
+  correctResults: number;
+  wrongPredictions: number;
+};
+
+type DatabaseRankingEntry = {
+  user_id: string;
+  user_name: string;
+  position: number | string;
+  points: number | string;
+  exact_scores: number | string;
+  correct_results: number | string;
+  wrong_predictions: number | string;
+};
 
 export function PoolRanking({
   poolId,
@@ -25,41 +41,80 @@ export function PoolRanking({
   const [status, setStatus] =
     useState<RankingStatus>("loading");
 
-  const [response, setResponse] =
-    useState<ApiRankingResponse | null>(null);
+  const [ranking, setRanking] =
+    useState<RankingEntry[]>([]);
 
-  async function loadRanking(
-    signal?: AbortSignal,
-  ) {
-    setStatus("loading");
+  const [currentUserId, setCurrentUserId] =
+    useState("");
 
-    try {
-      const data = await getPoolRanking(
-        poolId,
-        signal,
-      );
+  const loadRanking =
+    useCallback(async () => {
+      setStatus("loading");
 
-      setResponse(data);
-      setStatus("success");
-    } catch (error) {
-      if (
-        error instanceof DOMException &&
-        error.name === "AbortError"
-      ) {
+      const supabase = createClient();
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setStatus("error");
         return;
       }
 
-      setStatus("error");
-    }
-  }
+      setCurrentUserId(user.id);
+
+      const {
+        data,
+        error,
+      } = await supabase.rpc(
+        "get_pool_ranking",
+        {
+          target_pool_id: poolId,
+        },
+      );
+
+      if (error) {
+        console.error(
+          "Erro ao carregar ranking:",
+          error,
+        );
+
+        setStatus("error");
+        return;
+      }
+
+      const entries =
+        (data ??
+          []) as DatabaseRankingEntry[];
+
+      setRanking(
+        entries.map((entry) => ({
+          userId: entry.user_id,
+          userName: entry.user_name,
+          position:
+            Number(entry.position),
+          points:
+            Number(entry.points),
+          exactScores:
+            Number(entry.exact_scores),
+          correctResults:
+            Number(
+              entry.correct_results,
+            ),
+          wrongPredictions:
+            Number(
+              entry.wrong_predictions,
+            ),
+        })),
+      );
+
+      setStatus("success");
+    }, [poolId]);
 
   useEffect(() => {
-    const controller = new AbortController();
-
-    loadRanking(controller.signal);
-
-    return () => controller.abort();
-  }, [poolId]);
+    loadRanking();
+  }, [loadRanking]);
 
   if (status === "loading") {
     return (
@@ -69,10 +124,7 @@ export function PoolRanking({
     );
   }
 
-  if (
-    status === "error" ||
-    !response
-  ) {
+  if (status === "error") {
     return (
       <div className="rounded-2xl border border-red-400/30 bg-red-400/10 p-6">
         <strong className="text-red-400">
@@ -80,12 +132,12 @@ export function PoolRanking({
         </strong>
 
         <p className="mt-2 text-sm text-slate-400">
-          Verifique se o backend está funcionando.
+          Tente atualizar os dados do bolão.
         </p>
 
         <button
           type="button"
-          onClick={() => loadRanking()}
+          onClick={loadRanking}
           className="mt-4 rounded-xl border border-red-400/40 px-4 py-2 text-sm font-bold text-red-300"
         >
           Tentar novamente
@@ -96,42 +148,56 @@ export function PoolRanking({
 
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-800 bg-[#0e2131]">
-      <div className="flex items-center justify-between border-b border-slate-800 p-6">
+      <div className="flex flex-col gap-4 border-b border-slate-800 p-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-extrabold">
             Ranking do bolão
           </h2>
 
           <p className="mt-1 text-sm text-slate-400">
-            Pontuação calculada pelo servidor.
+            5 pontos pelo placar exato, 3 pelo
+            resultado correto e 0 pelo erro.
           </p>
         </div>
 
-        <span className="rounded-full bg-lime-400/10 px-3 py-1 text-xs font-bold text-lime-400">
-          RODADA {response.round}
-        </span>
+        <button
+          type="button"
+          onClick={loadRanking}
+          className="rounded-xl border border-lime-400/30 px-4 py-2 text-sm font-bold text-lime-400 transition hover:bg-lime-400/10"
+        >
+          Atualizar ranking
+        </button>
       </div>
 
-      <div className="divide-y divide-slate-800">
-        {response.ranking.map((entry) => (
-          <RankingRow
-            key={entry.userId}
-            entry={entry}
-          />
-        ))}
-      </div>
+      {ranking.length === 0 ? (
+        <div className="p-8 text-center text-slate-400">
+          Nenhum participante encontrado.
+        </div>
+      ) : (
+        <div className="divide-y divide-slate-800">
+          {ranking.map((entry) => (
+            <RankingRow
+              key={entry.userId}
+              entry={entry}
+              isCurrentUser={
+                entry.userId ===
+                currentUserId
+              }
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
 
 function RankingRow({
   entry,
+  isCurrentUser,
 }: {
-  entry: ApiRankingEntry;
+  entry: RankingEntry;
+  isCurrentUser: boolean;
 }) {
-  const isCurrentUser =
-    entry.userId === "joao";
-
   return (
     <div
       className={`grid grid-cols-[48px_1fr_auto] items-center gap-4 p-5 ${
@@ -153,7 +219,9 @@ function RankingRow({
       <div>
         <strong>
           {entry.userName}
-          {isCurrentUser ? " (você)" : ""}
+          {isCurrentUser
+            ? " (você)"
+            : ""}
         </strong>
 
         <p className="mt-1 text-xs text-slate-500">

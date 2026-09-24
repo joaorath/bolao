@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { PoolCardActions } from "@/components/pool-card-actions";
+
 import type { PoolSummary } from "@/types";
 
 type PoolCardProps = {
@@ -38,6 +40,18 @@ export function PoolCard({
         </p>
       )}
 
+      {pool.isOwner && pool.inviteCode && (
+        <div className="mt-4 rounded-xl bg-slate-950/40 p-3">
+          <span className="text-[10px] font-bold tracking-wider text-slate-500">
+            CÓDIGO DE CONVITE
+          </span>
+
+          <strong className="mt-1 block tracking-[0.15em] text-lime-400">
+            {pool.inviteCode}
+          </strong>
+        </div>
+      )}
+
       <div className="mt-6 grid grid-cols-3 gap-3">
         <PoolStatistic
           label="POSIÇÃO"
@@ -63,7 +77,7 @@ export function PoolCard({
           Abrir bolão
         </Link>
 
-        {onRemove && (
+        {onRemove ? (
           <button
             type="button"
             onClick={() => onRemove(pool)}
@@ -71,6 +85,12 @@ export function PoolCard({
           >
             {pool.isOwner ? "Excluir" : "Sair"}
           </button>
+        ) : (
+          <PoolCardActions
+            poolId={pool.id}
+            poolName={pool.name}
+            isOwner={Boolean(pool.isOwner)}
+          />
         )}
       </div>
     </article>

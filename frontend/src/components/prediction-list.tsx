@@ -6,31 +6,297 @@ import {
   useState,
 } from "react";
 
-import { useDemoStore } from "@/contexts/demo-store";
-import { upcomingMatches } from "@/data/mock-data";
+import { createClient } from "@/lib/supabase/client";
 
-import type { Match } from "@/types";
+import type {
+  Match,
+  MatchStatus,
+} from "@/types";
 
 type PredictionListProps = {
   poolId: string;
 };
 
+type SavedPrediction = {
+  matchId: string;
+  homeScore: number;
+  awayScore: number;
+};
+
+type DatabaseMatch = {
+  id: string;
+  competition: string;
+  round: number;
+  stadium: string | null;
+  starts_at: string;
+  home_team_name: string;
+  home_team_abbreviation: string;
+  home_team_color: string;
+  away_team_name: string;
+  away_team_abbreviation: string;
+  away_team_color: string;
+};
+
+type DatabasePoolMatch = {
+  status: string;
+  official_home_score: number | null;
+  official_away_score: number | null;
+  matches:
+    | DatabaseMatch
+    | DatabaseMatch[]
+    | null;
+};
+
 export function PredictionList({
   poolId,
 }: PredictionListProps) {
-  const { pools } = useDemoStore();
+  const [matches, setMatches] =
+    useState<Match[]>([]);
+
+  const [predictions, setPredictions] =
+    useState<
+      Record<string, SavedPrediction>
+    >({});
+
+  const [
+    compatiblePoolIds,
+    setCompatiblePoolIds,
+  ] = useState<string[]>([poolId]);
+
+  const [userId, setUserId] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [loadError, setLoadError] =
+    useState("");
 
   const [applyToAllPools, setApplyToAllPools] =
     useState(false);
 
-  const currentPool = pools.find(
-    (pool) => pool.id === poolId,
-  );
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true);
+      setLoadError("");
 
-  const compatiblePools = pools.filter(
-    (pool) =>
-      pool.competition === currentPool?.competition,
-  );
+      const supabase = createClient();
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setLoadError(
+          "Sua sessão expirou.",
+        );
+
+        setLoading(false);
+        return;
+      }
+
+      setUserId(user.id);
+
+      const [
+        poolMatchesResult,
+        predictionsResult,
+        poolsResult,
+      ] = await Promise.all([
+        supabase
+          .from("pool_matches")
+          .select(`
+            status,
+            official_home_score,
+            official_away_score,
+            matches(
+              id,
+              competition,
+              round,
+              stadium,
+              starts_at,
+              home_team_name,
+              home_team_abbreviation,
+              home_team_color,
+              away_team_name,
+              away_team_abbreviation,
+              away_team_color
+            )
+          `)
+          .eq("pool_id", poolId),
+
+        supabase
+          .from("predictions")
+          .select(
+            "match_id, home_score, away_score",
+          )
+          .eq("pool_id", poolId)
+          .eq("user_id", user.id),
+
+        supabase
+          .from("pools")
+          .select(
+            "id, competition",
+          ),
+      ]);
+
+      if (poolMatchesResult.error) {
+        console.error(
+          "Erro ao carregar jogos:",
+          poolMatchesResult.error,
+        );
+
+        setLoadError(
+          "Não foi possível carregar os jogos.",
+        );
+
+        setLoading(false);
+        return;
+      }
+
+      const loadedMatches: Match[] = [];
+
+      for (
+        const item of
+          (poolMatchesResult.data ??
+            []) as unknown as DatabasePoolMatch[]
+      ) {
+        const databaseMatch =
+          Array.isArray(item.matches)
+            ? item.matches[0]
+            : item.matches;
+
+        if (!databaseMatch) {
+          continue;
+        }
+
+        loadedMatches.push({
+          id: databaseMatch.id,
+          competition:
+            databaseMatch.competition,
+          round: databaseMatch.round,
+          stadium:
+            databaseMatch.stadium ??
+            "Estádio não informado",
+          startsAt:
+            databaseMatch.starts_at,
+          status:
+            item.status as MatchStatus,
+          homeScore:
+            item.official_home_score ??
+            undefined,
+          awayScore:
+            item.official_away_score ??
+            undefined,
+          homeTeam: {
+            id: `${databaseMatch.id}-home`,
+            name:
+              databaseMatch.home_team_name,
+            abbreviation:
+              databaseMatch
+                .home_team_abbreviation,
+            primaryColor:
+              databaseMatch.home_team_color,
+            secondaryColor: "#ffffff",
+          },
+          awayTeam: {
+            id: `${databaseMatch.id}-away`,
+            name:
+              databaseMatch.away_team_name,
+            abbreviation:
+              databaseMatch
+                .away_team_abbreviation,
+            primaryColor:
+              databaseMatch.away_team_color,
+            secondaryColor: "#ffffff",
+          },
+        });
+      }
+
+      loadedMatches.sort((first, second) => {
+        return (
+          new Date(first.startsAt).getTime() -
+          new Date(second.startsAt).getTime()
+        );
+      });
+
+      setMatches(loadedMatches);
+
+      const loadedPredictions: Record<
+        string,
+        SavedPrediction
+      > = {};
+
+      for (
+        const prediction of
+          predictionsResult.data ?? []
+      ) {
+        loadedPredictions[
+          prediction.match_id
+        ] = {
+          matchId:
+            prediction.match_id,
+          homeScore:
+            prediction.home_score,
+          awayScore:
+            prediction.away_score,
+        };
+      }
+
+      setPredictions(loadedPredictions);
+
+      const currentPool =
+        poolsResult.data?.find(
+          (pool) => pool.id === poolId,
+        );
+
+      if (currentPool) {
+        const compatibleIds =
+          (poolsResult.data ?? [])
+            .filter(
+              (pool) =>
+                pool.competition ===
+                currentPool.competition,
+            )
+            .map((pool) => pool.id);
+
+        setCompatiblePoolIds(
+          compatibleIds.length > 0
+            ? compatibleIds
+            : [poolId],
+        );
+      }
+
+      setLoading(false);
+    }
+
+    loadData();
+  }, [poolId]);
+
+  function handlePredictionSaved(
+    prediction: SavedPrediction,
+  ) {
+    setPredictions((current) => ({
+      ...current,
+      [prediction.matchId]:
+        prediction,
+    }));
+  }
+
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-slate-800 bg-[#0e2131] p-6 text-slate-400">
+        Carregando jogos e palpites...
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="rounded-2xl border border-red-400/30 bg-red-400/10 p-6 text-red-300">
+        {loadError}
+      </div>
+    );
+  }
 
   return (
     <section>
@@ -41,8 +307,8 @@ export function PredictionList({
           </h2>
 
           <p className="mt-1 text-sm text-slate-400">
-            Os palpites ficam salvos separadamente em
-            cada bolão.
+            Seus palpites ficam salvos na sua
+            conta e separados em cada bolão.
           </p>
         </div>
 
@@ -50,7 +316,9 @@ export function PredictionList({
           <input
             type="checkbox"
             checked={applyToAllPools}
-            disabled={compatiblePools.length < 2}
+            disabled={
+              compatiblePoolIds.length < 2
+            }
             onChange={(event) =>
               setApplyToAllPools(
                 event.target.checked,
@@ -63,42 +331,61 @@ export function PredictionList({
         </label>
       </div>
 
-      <div className="mt-5 space-y-4">
-        {upcomingMatches.map((match) => (
-          <PredictionEditor
-            key={`${poolId}-${match.id}`}
-            poolId={poolId}
-            match={match}
-            applyToAllPools={applyToAllPools}
-          />
-        ))}
-      </div>
+      {matches.length === 0 ? (
+        <div className="mt-5 rounded-2xl border border-slate-800 bg-[#0e2131] p-6 text-slate-400">
+          Nenhum jogo disponível neste bolão.
+        </div>
+      ) : (
+        <div className="mt-5 space-y-4">
+          {matches.map((match) => (
+            <PredictionEditor
+              key={`${poolId}-${match.id}`}
+              poolId={poolId}
+              userId={userId}
+              match={match}
+              savedPrediction={
+                predictions[match.id]
+              }
+              targetPoolIds={
+                applyToAllPools
+                  ? compatiblePoolIds
+                  : [poolId]
+              }
+              applyToAllPools={
+                applyToAllPools
+              }
+              onSaved={
+                handlePredictionSaved
+              }
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
 
 type PredictionEditorProps = {
   poolId: string;
+  userId: string;
   match: Match;
+  savedPrediction?: SavedPrediction;
+  targetPoolIds: string[];
   applyToAllPools: boolean;
+  onSaved: (
+    prediction: SavedPrediction,
+  ) => void;
 };
 
 function PredictionEditor({
   poolId,
+  userId,
   match,
+  savedPrediction,
+  targetPoolIds,
   applyToAllPools,
+  onSaved,
 }: PredictionEditorProps) {
-  const {
-    pools,
-    getPrediction,
-    savePrediction,
-  } = useDemoStore();
-
-  const savedPrediction = getPrediction(
-    poolId,
-    match.id,
-  );
-
   const [homeScore, setHomeScore] =
     useState("");
 
@@ -108,39 +395,61 @@ function PredictionEditor({
   const [feedback, setFeedback] =
     useState("");
 
+  const [feedbackIsError, setFeedbackIsError] =
+    useState(false);
+
+  const [saving, setSaving] =
+    useState(false);
+
   useEffect(() => {
     setHomeScore(
       savedPrediction
-        ? String(savedPrediction.homeScore)
+        ? String(
+            savedPrediction.homeScore,
+          )
         : "",
     );
 
     setAwayScore(
       savedPrediction
-        ? String(savedPrediction.awayScore)
+        ? String(
+            savedPrediction.awayScore,
+          )
         : "",
     );
 
     setFeedback("");
+    setFeedbackIsError(false);
   }, [
     poolId,
     match.id,
     savedPrediction,
   ]);
 
-  function handleSubmit(
+  const locked =
+    match.status !== "OPEN" &&
+    match.status !== "SCHEDULED";
+
+  async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
 
-    const parsedHomeScore = Number(homeScore);
-    const parsedAwayScore = Number(awayScore);
+    const parsedHomeScore =
+      Number(homeScore);
+
+    const parsedAwayScore =
+      Number(awayScore);
 
     const scoresAreValid =
       homeScore.trim() !== "" &&
       awayScore.trim() !== "" &&
-      Number.isInteger(parsedHomeScore) &&
-      Number.isInteger(parsedAwayScore) &&
+      Number.isInteger(
+        parsedHomeScore,
+      ) &&
+      Number.isInteger(
+        parsedAwayScore,
+      ) &&
       parsedHomeScore >= 0 &&
       parsedAwayScore >= 0 &&
       parsedHomeScore <= 99 &&
@@ -151,26 +460,60 @@ function PredictionEditor({
         "Informe dois placares válidos.",
       );
 
+      setFeedbackIsError(true);
       return;
     }
 
-    const targetPoolIds = applyToAllPools
-      ? pools
-          .filter(
-            (pool) =>
-              pool.competition ===
-              match.competition,
-          )
-          .map((pool) => pool.id)
-      : [poolId];
+    setSaving(true);
+    setFeedback("");
+    setFeedbackIsError(false);
 
-    targetPoolIds.forEach((targetPoolId) => {
-      savePrediction({
-        poolId: targetPoolId,
-        matchId: match.id,
-        homeScore: parsedHomeScore,
-        awayScore: parsedAwayScore,
+    const supabase = createClient();
+
+    const predictionRows =
+      targetPoolIds.map(
+        (targetPoolId) => ({
+          pool_id: targetPoolId,
+          match_id: match.id,
+          user_id: userId,
+          home_score:
+            parsedHomeScore,
+          away_score:
+            parsedAwayScore,
+          updated_at:
+            new Date().toISOString(),
+        }),
+      );
+
+    const { error } = await supabase
+      .from("predictions")
+      .upsert(predictionRows, {
+        onConflict:
+          "pool_id,match_id,user_id",
       });
+
+    setSaving(false);
+
+    if (error) {
+      console.error(
+        "Erro ao salvar palpite:",
+        error,
+      );
+
+      setFeedback(
+        "Não foi possível salvar o palpite.",
+      );
+
+      setFeedbackIsError(true);
+      return;
+    }
+
+    onSaved({
+      matchId: match.id,
+      homeScore:
+        parsedHomeScore,
+      awayScore:
+        parsedAwayScore,
     });
 
     setFeedback(
@@ -180,16 +523,19 @@ function PredictionEditor({
     );
   }
 
-  const matchDate = new Intl.DateTimeFormat(
-    "pt-BR",
-    {
-      day: "2-digit",
-      month: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: "America/Belem",
-    },
-  ).format(new Date(match.startsAt));
+  const matchDate =
+    new Intl.DateTimeFormat(
+      "pt-BR",
+      {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "America/Belem",
+      },
+    ).format(
+      new Date(match.startsAt),
+    );
 
   return (
     <form
@@ -218,7 +564,7 @@ function PredictionEditor({
           <ScoreInput
             label={`Placar do ${match.homeTeam.name}`}
             value={homeScore}
-            disabled={savedPrediction?.locked}
+            disabled={locked || saving}
             onChange={setHomeScore}
           />
 
@@ -229,7 +575,7 @@ function PredictionEditor({
           <ScoreInput
             label={`Placar do ${match.awayTeam.name}`}
             value={awayScore}
-            disabled={savedPrediction?.locked}
+            disabled={locked || saving}
             onChange={setAwayScore}
           />
 
@@ -248,7 +594,7 @@ function PredictionEditor({
           {feedback ? (
             <span
               className={
-                feedback.includes("válidos")
+                feedbackIsError
                   ? "text-red-400"
                   : "text-emerald-400"
               }
@@ -272,12 +618,14 @@ function PredictionEditor({
 
         <button
           type="submit"
-          disabled={savedPrediction?.locked}
+          disabled={locked || saving}
           className="rounded-xl bg-lime-400 px-5 py-2.5 text-sm font-extrabold text-slate-950 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
         >
-          {savedPrediction?.locked
+          {locked
             ? "Palpite encerrado"
-            : "Salvar palpite"}
+            : saving
+              ? "Salvando..."
+              : "Salvar palpite"}
         </button>
       </div>
     </form>
