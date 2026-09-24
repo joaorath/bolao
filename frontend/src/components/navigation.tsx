@@ -3,6 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { logout } from "@/app/auth/actions";
+
+export type NavigationUser = {
+  fullName: string;
+  email: string;
+  initials: string;
+};
+
+type NavigationUserProps = {
+  user: NavigationUser | null;
+};
+
 const navigationItems = [
   {
     href: "/",
@@ -25,7 +37,7 @@ const navigationItems = [
     icon: "♜",
   },
   {
-    href: "/perfil",
+    href: "/conta",
     label: "Perfil",
     icon: "◉",
   },
@@ -41,7 +53,9 @@ function useActiveRoute(href: string) {
   return pathname.startsWith(href);
 }
 
-export function Sidebar() {
+export function Sidebar({
+  user,
+}: NavigationUserProps) {
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-slate-800 bg-[#091a28] px-5 py-7 lg:flex">
       <Link
@@ -92,23 +106,32 @@ export function Sidebar() {
       </div>
 
       <Link
-        href="/perfil"
+        href="/conta"
         className="mt-5 flex items-center gap-3 rounded-xl p-2 transition hover:bg-slate-800"
       >
-        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-900 text-xs font-bold">
-          JR
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-900 text-xs font-bold">
+          {user?.initials ?? "CL"}
         </span>
 
-        <div>
-          <strong className="block text-sm">
-            João Rath
+        <div className="min-w-0">
+          <strong className="block truncate text-sm">
+            {user?.fullName ?? "Participante"}
           </strong>
 
-          <span className="text-xs text-slate-500">
-            Conta demonstração
+          <span className="block truncate text-xs text-slate-500">
+            {user?.email ?? "Conta conectada"}
           </span>
         </div>
       </Link>
+
+      <form action={logout} className="mt-2">
+        <button
+          type="submit"
+          className="w-full rounded-xl border border-red-400/20 px-4 py-2 text-sm font-bold text-red-400 transition hover:bg-red-400/10"
+        >
+          Sair da conta
+        </button>
+      </form>
     </aside>
   );
 }

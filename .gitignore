@@ -12,3 +12,6 @@ dist/
 .env
 .env.*
 !.env.example
+
+# Configuração local do frontend
+frontend/.env.local
