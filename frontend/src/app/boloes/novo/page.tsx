@@ -1,58 +1,44 @@
 "use client";
 
 import Link from "next/link";
+
 import {
-  FormEvent,
+  useActionState,
   useState,
 } from "react";
 
-import { useDemoStore } from "@/contexts/demo-store";
+import { createPool } from "@/app/boloes/actions";
 
-import type {
-  PoolSummary,
-  PoolVisibility,
-} from "@/types";
+import type { PoolVisibility } from "@/types";
+
+const initialState = {
+  error: "",
+  pool: null,
+};
 
 export default function CreatePoolPage() {
-  const { createPool } = useDemoStore();
+  const [state, formAction, pending] =
+    useActionState(
+      createPool,
+      initialState,
+    );
 
-  const [name, setName] = useState("");
   const [description, setDescription] =
     useState("");
-
-  const [competition, setCompetition] =
-    useState("Campeonato Paraense");
 
   const [visibility, setVisibility] =
     useState<PoolVisibility>("PRIVATE");
 
-  const [createdPool, setCreatedPool] =
-    useState<PoolSummary | null>(null);
-
-  const [copied, setCopied] = useState(false);
-
-  function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault();
-
-    const pool = createPool({
-      name: name.trim(),
-      description: description.trim(),
-      competition,
-      visibility,
-    });
-
-    setCreatedPool(pool);
-  }
+  const [copied, setCopied] =
+    useState(false);
 
   async function copyInvite() {
-    if (!createdPool?.inviteCode) {
+    if (!state.pool?.inviteCode) {
       return;
     }
 
     await navigator.clipboard.writeText(
-      createdPool.inviteCode,
+      state.pool.inviteCode,
     );
 
     setCopied(true);
@@ -62,19 +48,22 @@ export default function CreatePoolPage() {
     }, 2000);
   }
 
-  if (createdPool) {
+  if (state.pool) {
     return (
       <div className="mx-auto max-w-2xl">
         <section className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-7">
-          <span className="text-4xl">✓</span>
+          <span className="text-4xl">
+            ✓
+          </span>
 
           <h1 className="mt-4 text-3xl font-extrabold">
             Bolão criado!
           </h1>
 
           <p className="mt-2 text-slate-300">
-            {createdPool.name} já aparece na sua
-            lista de bolões.
+            {state.pool.name} foi salvo no
+            Supabase e já possui os jogos do
+            Campeonato Paraense.
           </p>
 
           <div className="mt-7 rounded-xl bg-slate-950/50 p-5">
@@ -83,7 +72,7 @@ export default function CreatePoolPage() {
             </span>
 
             <strong className="mt-2 block text-3xl tracking-[0.2em] text-lime-400">
-              {createdPool.inviteCode}
+              {state.pool.inviteCode}
             </strong>
 
             <button
@@ -97,12 +86,21 @@ export default function CreatePoolPage() {
             </button>
           </div>
 
-          <Link
-            href="/boloes"
-            className="mt-6 inline-flex rounded-xl bg-lime-400 px-5 py-3 font-extrabold text-slate-950"
-          >
-            Voltar para bolões
-          </Link>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/boloes"
+              className="rounded-xl bg-lime-400 px-5 py-3 text-center font-extrabold text-slate-950"
+            >
+              Ver meus bolões
+            </Link>
+
+            <Link
+              href={`/boloes/${state.pool.id}`}
+              className="rounded-xl border border-lime-400 px-5 py-3 text-center font-bold text-lime-400"
+            >
+              Abrir bolão
+            </Link>
+          </div>
         </section>
       </div>
     );
@@ -131,8 +129,14 @@ export default function CreatePoolPage() {
         </p>
       </header>
 
+      {state.error && (
+        <div className="mt-6 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-red-300">
+          {state.error}
+        </div>
+      )}
+
       <form
-        onSubmit={handleSubmit}
+        action={formAction}
         className="mt-8 space-y-6 rounded-2xl border border-slate-800 bg-[#0e2131] p-6"
       >
         <label className="block">
@@ -142,12 +146,9 @@ export default function CreatePoolPage() {
 
           <input
             required
+            name="name"
             minLength={3}
-            maxLength={60}
-            value={name}
-            onChange={(event) =>
-              setName(event.target.value)
-            }
+            maxLength={80}
             placeholder="Ex.: Bolão da Faculdade"
             className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950/50 px-4 py-3 outline-none transition focus:border-lime-400"
           />
@@ -160,10 +161,13 @@ export default function CreatePoolPage() {
 
           <textarea
             required
+            name="description"
             maxLength={250}
             value={description}
             onChange={(event) =>
-              setDescription(event.target.value)
+              setDescription(
+                event.target.value,
+              )
             }
             placeholder="Explique quem participará deste bolão."
             rows={4}
@@ -181,13 +185,11 @@ export default function CreatePoolPage() {
           </span>
 
           <select
-            value={competition}
-            onChange={(event) =>
-              setCompetition(event.target.value)
-            }
+            name="competition"
+            defaultValue="Campeonato Paraense"
             className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none focus:border-lime-400"
           >
-            <option>
+            <option value="Campeonato Paraense">
               Campeonato Paraense
             </option>
           </select>
@@ -257,9 +259,12 @@ export default function CreatePoolPage() {
 
         <button
           type="submit"
-          className="w-full rounded-xl bg-lime-400 px-5 py-3 font-extrabold text-slate-950 transition hover:bg-lime-300"
+          disabled={pending}
+          className="w-full rounded-xl bg-lime-400 px-5 py-3 font-extrabold text-slate-950 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
         >
-          Criar bolão
+          {pending
+            ? "Criando bolão..."
+            : "Criar bolão"}
         </button>
       </form>
     </div>

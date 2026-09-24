@@ -1,3 +1,7 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+
 import type { ReactNode } from "react";
 
 import {
@@ -5,16 +9,43 @@ import {
   Sidebar,
 } from "@/components/navigation";
 
+import type { NavigationUser } from "@/components/navigation";
+
 type AppShellProps = {
   children: ReactNode;
+  user: NavigationUser | null;
 };
 
 export function AppShell({
   children,
+  user,
 }: AppShellProps) {
+  const pathname = usePathname();
+
+  const isAuthenticationPage =
+    pathname === "/login" ||
+    pathname === "/cadastro" ||
+    pathname.startsWith("/auth/");
+
+  const isPublicLandingPage =
+    pathname === "/" && !user;
+
+  if (
+    isAuthenticationPage ||
+    isPublicLandingPage
+  ) {
+    return (
+      <div className="min-h-screen bg-[#071421] text-white">
+        <main className="min-h-screen">
+          {children}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#071421] text-white">
-      <Sidebar />
+      <Sidebar user={user} />
 
       <div className="lg:pl-64">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-800 bg-[#071421]/95 px-5 backdrop-blur lg:hidden">
@@ -29,7 +60,7 @@ export function AppShell({
           </div>
 
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-900 text-xs font-bold">
-            JR
+            {user?.initials ?? "CL"}
           </span>
         </header>
 
