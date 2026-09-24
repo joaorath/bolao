@@ -27,7 +27,13 @@ export function AppShell({
     pathname === "/cadastro" ||
     pathname.startsWith("/auth/");
 
-  if (isAuthenticationPage) {
+  const isPublicLandingPage =
+    pathname === "/" && !user;
+
+  if (
+    isAuthenticationPage ||
+    isPublicLandingPage
+  ) {
     return (
       <div className="min-h-screen bg-[#071421] text-white">
         <main className="min-h-screen">

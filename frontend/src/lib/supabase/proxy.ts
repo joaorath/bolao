@@ -92,6 +92,7 @@ export async function updateSession(
   const pathname = request.nextUrl.pathname;
 
   const isPublicAuthRoute =
+    pathname === "/" ||
     pathname === "/login" ||
     pathname === "/cadastro" ||
     pathname.startsWith("/auth/");
