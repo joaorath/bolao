@@ -63,6 +63,7 @@ export default async function PoolsPage({
       invite_code,
       pool_members(count)
     `)
+    .eq("is_global", false)
     .order("created_at", {
       ascending: false,
     });
@@ -88,7 +89,8 @@ export default async function PoolsPage({
         inviteCode: pool.invite_code,
         visibility:
           pool.visibility as PoolVisibility,
-        matchSelectionMode: "ALL_COMPETITION",
+        matchSelectionMode:
+          "ALL_COMPETITION",
         isOwner:
           pool.owner_id === user.id,
       };
@@ -101,7 +103,7 @@ export default async function PoolsPage({
           SUAS DISPUTAS
         </span>
 
-        <h1 className="mt-3 text-4xl font-extrabold">
+        <h1 className="mt-3 text-3xl font-extrabold sm:text-4xl">
           Bolões
         </h1>
 
@@ -160,25 +162,42 @@ export default async function PoolsPage({
       </section>
 
       <section className="mt-10">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <h2 className="text-xl font-extrabold">
             Em andamento
           </h2>
 
-          <span className="text-sm text-slate-500">
-            {pools.length} bolões
+          <span className="whitespace-nowrap text-sm text-slate-500">
+            {pools.length}{" "}
+            {pools.length === 1
+              ? "bolão"
+              : "bolões"}
           </span>
         </div>
 
         {pools.length === 0 ? (
           <div className="mt-5 rounded-2xl border border-dashed border-slate-700 p-8 text-center">
-            <h3 className="font-extrabold">
-              Você ainda não participa de nenhum bolão
+            <span className="text-4xl">
+              ⚽
+            </span>
+
+            <h3 className="mt-4 font-extrabold">
+              Você ainda não participa de nenhum
+              bolão particular
             </h3>
 
             <p className="mt-2 text-sm text-slate-400">
-              Crie um novo ou use um código de convite.
+              Crie um novo bolão ou use um código
+              de convite. Você já participa
+              automaticamente do Ranking Geral.
             </p>
+
+            <Link
+              href="/ranking"
+              className="mt-5 inline-block text-sm font-bold text-lime-400 hover:underline"
+            >
+              Acessar Ranking Geral
+            </Link>
           </div>
         ) : (
           <div className="mt-5 grid gap-5 md:grid-cols-2">

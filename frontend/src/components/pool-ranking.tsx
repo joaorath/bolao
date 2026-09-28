@@ -21,16 +21,22 @@ type RankingEntry = {
   exactScores: number;
   correctResults: number;
   wrongPredictions: number;
+  totalParticipants: number;
+  isCurrentUser: boolean;
+  isTopEntry: boolean;
 };
 
 type DatabaseRankingEntry = {
   user_id: string;
   user_name: string;
-  position: number | string;
+  ranking_position: number | string;
   points: number | string;
   exact_scores: number | string;
   correct_results: number | string;
   wrong_predictions: number | string;
+  total_participants: number | string;
+  is_current_user: boolean;
+  is_top_entry: boolean;
 };
 
 export function PoolRanking({
@@ -43,9 +49,6 @@ export function PoolRanking({
 
   const [ranking, setRanking] =
     useState<RankingEntry[]>([]);
-
-  const [currentUserId, setCurrentUserId] =
-    useState("");
 
   const loadRanking =
     useCallback(async () => {
@@ -62,17 +65,14 @@ export function PoolRanking({
         return;
       }
 
-      setCurrentUserId(user.id);
-
-      const {
-        data,
-        error,
-      } = await supabase.rpc(
-        "get_pool_ranking",
-        {
-          target_pool_id: poolId,
-        },
-      );
+      const { data, error } =
+        await supabase.rpc(
+          "get_pool_ranking_summary",
+          {
+            target_pool_id: poolId,
+            ranking_limit: 100,
+          },
+        );
 
       if (error) {
         console.error(
@@ -92,20 +92,26 @@ export function PoolRanking({
         entries.map((entry) => ({
           userId: entry.user_id,
           userName: entry.user_name,
-          position:
-            Number(entry.position),
-          points:
-            Number(entry.points),
-          exactScores:
-            Number(entry.exact_scores),
-          correctResults:
-            Number(
-              entry.correct_results,
-            ),
-          wrongPredictions:
-            Number(
-              entry.wrong_predictions,
-            ),
+          position: Number(
+            entry.ranking_position,
+          ),
+          points: Number(entry.points),
+          exactScores: Number(
+            entry.exact_scores,
+          ),
+          correctResults: Number(
+            entry.correct_results,
+          ),
+          wrongPredictions: Number(
+            entry.wrong_predictions,
+          ),
+          totalParticipants: Number(
+            entry.total_participants,
+          ),
+          isCurrentUser:
+            entry.is_current_user,
+          isTopEntry:
+            entry.is_top_entry,
         })),
       );
 
@@ -132,7 +138,7 @@ export function PoolRanking({
         </strong>
 
         <p className="mt-2 text-sm text-slate-400">
-          Tente atualizar os dados do bolão.
+          Tente atualizar a classificação.
         </p>
 
         <button
@@ -146,45 +152,75 @@ export function PoolRanking({
     );
   }
 
+  const topRanking = ranking.filter(
+    (entry) => entry.isTopEntry,
+  );
+
+  const currentUserOutsideTop =
+    ranking.find(
+      (entry) =>
+        entry.isCurrentUser &&
+        !entry.isTopEntry,
+    );
+
+  const totalParticipants =
+    ranking[0]?.totalParticipants ?? 0;
+
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-800 bg-[#0e2131]">
-      <div className="flex flex-col gap-4 border-b border-slate-800 p-6 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex flex-col gap-4 border-b border-slate-800 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
           <h2 className="text-xl font-extrabold">
-            Ranking do bolão
+            Classificação
           </h2>
 
           <p className="mt-1 text-sm text-slate-400">
-            5 pontos pelo placar exato, 3 pelo
-            resultado correto e 0 pelo erro.
+            {totalParticipants}{" "}
+            {totalParticipants === 1
+              ? "participante"
+              : "participantes"}
+            {" · "}
+            5 pontos pelo placar exato e 3 pelo
+            resultado correto.
           </p>
         </div>
 
         <button
           type="button"
           onClick={loadRanking}
-          className="rounded-xl border border-lime-400/30 px-4 py-2 text-sm font-bold text-lime-400 transition hover:bg-lime-400/10"
+          className="w-full rounded-xl border border-lime-400/30 px-4 py-2 text-sm font-bold text-lime-400 transition hover:bg-lime-400/10 sm:w-auto"
         >
           Atualizar ranking
         </button>
-      </div>
+      </header>
 
-      {ranking.length === 0 ? (
+      {topRanking.length === 0 ? (
         <div className="p-8 text-center text-slate-400">
           Nenhum participante encontrado.
         </div>
       ) : (
         <div className="divide-y divide-slate-800">
-          {ranking.map((entry) => (
+          {topRanking.map((entry) => (
             <RankingRow
               key={entry.userId}
               entry={entry}
-              isCurrentUser={
-                entry.userId ===
-                currentUserId
-              }
             />
           ))}
+        </div>
+      )}
+
+      {currentUserOutsideTop && (
+        <div className="border-t border-slate-700 bg-slate-950/30 p-4 sm:p-5">
+          <span className="mb-3 block text-xs font-extrabold uppercase tracking-[0.15em] text-lime-400">
+            Sua posição
+          </span>
+
+          <div className="overflow-hidden rounded-xl border border-lime-400/40">
+            <RankingRow
+              entry={currentUserOutsideTop}
+              showTotal
+            />
+          </div>
         </div>
       )}
     </section>
@@ -193,16 +229,16 @@ export function PoolRanking({
 
 function RankingRow({
   entry,
-  isCurrentUser,
+  showTotal = false,
 }: {
   entry: RankingEntry;
-  isCurrentUser: boolean;
+  showTotal?: boolean;
 }) {
   return (
     <div
-      className={`grid grid-cols-[48px_1fr_auto] items-center gap-4 p-5 ${
-        isCurrentUser
-          ? "bg-lime-400/5"
+      className={`grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 p-4 sm:grid-cols-[60px_minmax(0,1fr)_auto] sm:gap-4 sm:p-5 ${
+        entry.isCurrentUser
+          ? "bg-lime-400/10 shadow-[inset_4px_0_0_#a3e635]"
           : ""
       }`}
     >
@@ -210,29 +246,45 @@ function RankingRow({
         className={
           entry.position <= 3
             ? "text-lime-400"
-            : "text-slate-500"
+            : "text-slate-400"
         }
       >
         {entry.position}º
       </strong>
 
-      <div>
-        <strong>
+      <div className="min-w-0">
+        <strong className="block truncate">
           {entry.userName}
-          {isCurrentUser
-            ? " (você)"
-            : ""}
+
+          {entry.isCurrentUser && (
+            <span className="ml-1 text-lime-400">
+              (você)
+            </span>
+          )}
         </strong>
 
         <p className="mt-1 text-xs text-slate-500">
-          {entry.exactScores} exatos ·{" "}
-          {entry.correctResults} resultados ·{" "}
+          {showTotal && (
+            <>
+              {entry.position} de{" "}
+              {entry.totalParticipants}
+              {" · "}
+            </>
+          )}
+
+          {entry.exactScores} exatos
+          {" · "}
+          {entry.correctResults} resultados
+          {" · "}
           {entry.wrongPredictions} erros
         </p>
       </div>
 
-      <strong className="text-lg">
-        {entry.points} pts
+      <strong className="whitespace-nowrap text-sm sm:text-lg">
+        {entry.points}{" "}
+        <span className="hidden sm:inline">
+          pts
+        </span>
       </strong>
     </div>
   );
