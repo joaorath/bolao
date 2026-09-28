@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+
 import { logout } from "@/app/auth/actions";
+import { createClient } from "@/lib/supabase/client";
 
 export type NavigationUser = {
   fullName: string;
@@ -15,7 +22,13 @@ type NavigationUserProps = {
   user: NavigationUser | null;
 };
 
-const navigationItems = [
+type NavigationItem = {
+  href: string;
+  label: string;
+  icon: string;
+};
+
+const navigationItems: NavigationItem[] = [
   {
     href: "/palpites",
     label: "Palpites",
@@ -46,21 +59,114 @@ const navigationItems = [
 function useActiveRoute(href: string) {
   const pathname = usePathname();
 
-  return (
-    pathname === href ||
-    pathname.startsWith(`${href}/`)
-  );
+  if (href === "/") {
+    return pathname === "/";
+  }
+
+  return pathname.startsWith(href);
+}
+
+function useLiveMatchesCount() {
+  const [liveMatchesCount, setLiveMatchesCount] =
+    useState(0);
+
+  const loadLiveMatchesCount =
+    useCallback(async () => {
+      const supabase = createClient();
+
+      const {
+        count,
+        error,
+      } = await supabase
+        .from("matches")
+        .select("id", {
+          count: "exact",
+          head: true,
+        })
+        .in("status", [
+          "LIVE",
+          "HALFTIME",
+        ]);
+
+      if (error) {
+        console.error(
+          "Erro ao contar partidas ao vivo:",
+          error,
+        );
+
+        return;
+      }
+
+      setLiveMatchesCount(count ?? 0);
+    }, []);
+
+  useEffect(() => {
+    loadLiveMatchesCount();
+
+    const interval = window.setInterval(
+      loadLiveMatchesCount,
+      10000,
+    );
+
+    const supabase = createClient();
+
+    const channel = supabase
+      .channel(
+        `navigation-live-matches-${Math.random()}`,
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "matches",
+        },
+        () => {
+          loadLiveMatchesCount();
+        },
+      )
+      .subscribe();
+
+    function handleVisibilityChange() {
+      if (
+        document.visibilityState ===
+        "visible"
+      ) {
+        loadLiveMatchesCount();
+      }
+    }
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange,
+    );
+
+    return () => {
+      window.clearInterval(interval);
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange,
+      );
+
+      supabase.removeChannel(channel);
+    };
+  }, [loadLiveMatchesCount]);
+
+  return liveMatchesCount;
 }
 
 export function Sidebar({
   user,
 }: NavigationUserProps) {
+  const liveMatchesCount =
+    useLiveMatchesCount();
+
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-slate-800 bg-[#091a28] px-5 py-7 lg:flex">
       <Link
         href="/palpites"
         className="flex items-center gap-3"
-        aria-label="Ir para os palpites"
       >
         <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-lime-400 text-sm font-black text-slate-950">
           CL
@@ -77,14 +183,14 @@ export function Sidebar({
         </div>
       </Link>
 
-      <nav
-        className="mt-12 space-y-2"
-        aria-label="Navegação principal"
-      >
+      <nav className="mt-12 space-y-2">
         {navigationItems.map((item) => (
           <SidebarLink
             key={item.href}
             {...item}
+            liveMatchesCount={
+              liveMatchesCount
+            }
           />
         ))}
       </nav>
@@ -118,19 +224,18 @@ export function Sidebar({
 
         <div className="min-w-0">
           <strong className="block truncate text-sm">
-            {user?.fullName ?? "Participante"}
+            {user?.fullName ??
+              "Participante"}
           </strong>
 
           <span className="block truncate text-xs text-slate-500">
-            {user?.email ?? "Conta conectada"}
+            {user?.email ??
+              "Conta conectada"}
           </span>
         </div>
       </Link>
 
-      <form
-        action={logout}
-        className="mt-2"
-      >
+      <form action={logout} className="mt-2">
         <button
           type="submit"
           className="w-full rounded-xl border border-red-400/20 px-4 py-2 text-sm font-bold text-red-400 transition hover:bg-red-400/10"
@@ -142,24 +247,24 @@ export function Sidebar({
   );
 }
 
-type NavigationLinkProps = {
-  href: string;
-  label: string;
-  icon: string;
+type NavigationLinkProps = NavigationItem & {
+  liveMatchesCount: number;
 };
 
 function SidebarLink({
   href,
   label,
   icon,
+  liveMatchesCount,
 }: NavigationLinkProps) {
   const active = useActiveRoute(href);
-  const isLive = label === "Ao vivo";
+
+  const isLiveItem =
+    href === "/ao-vivo";
 
   return (
     <Link
       href={href}
-      aria-current={active ? "page" : undefined}
       className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
         active
           ? "bg-slate-800 text-white shadow-[inset_3px_0_0_#a3e635]"
@@ -168,7 +273,7 @@ function SidebarLink({
     >
       <span
         className={
-          isLive
+          isLiveItem
             ? "text-red-500"
             : ""
         }
@@ -178,25 +283,31 @@ function SidebarLink({
 
       {label}
 
-      {isLive && (
-        <span className="ml-auto rounded-full bg-red-500 px-2 py-0.5 text-[10px] text-white">
-          1
-        </span>
-      )}
+      {isLiveItem &&
+        liveMatchesCount > 0 && (
+          <span className="ml-auto min-w-6 rounded-full bg-red-500 px-2 py-0.5 text-center text-[10px] text-white">
+            {liveMatchesCount > 99
+              ? "99+"
+              : liveMatchesCount}
+          </span>
+        )}
     </Link>
   );
 }
 
 export function MobileNavigation() {
+  const liveMatchesCount =
+    useLiveMatchesCount();
+
   return (
-    <nav
-      className="fixed inset-x-0 bottom-0 z-50 grid min-h-20 grid-cols-5 border-t border-slate-800 bg-[#091a28]/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl lg:hidden"
-      aria-label="Navegação para celular"
-    >
+    <nav className="fixed inset-x-0 bottom-0 z-50 grid h-20 grid-cols-5 border-t border-slate-800 bg-[#091a28]/95 backdrop-blur lg:hidden">
       {navigationItems.map((item) => (
         <MobileLink
           key={item.href}
           {...item}
+          liveMatchesCount={
+            liveMatchesCount
+          }
         />
       ))}
     </nav>
@@ -207,41 +318,42 @@ function MobileLink({
   href,
   label,
   icon,
+  liveMatchesCount,
 }: NavigationLinkProps) {
   const active = useActiveRoute(href);
-  const isLive = label === "Ao vivo";
+
+  const isLiveItem =
+    href === "/ao-vivo";
 
   return (
     <Link
       href={href}
-      aria-current={active ? "page" : undefined}
-      className={`relative flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-3 text-[10px] font-bold transition ${
+      className={`relative flex flex-col items-center justify-center gap-1 text-[10px] font-bold ${
         active
           ? "text-lime-400"
           : "text-slate-500"
       }`}
     >
-      {active && (
-        <span className="absolute top-0 h-0.5 w-8 rounded-full bg-lime-400" />
-      )}
-
       <span
-        className={`text-lg ${
-          isLive
+        className={`relative text-lg ${
+          isLiveItem
             ? "text-red-500"
             : ""
         }`}
       >
         {icon}
+
+        {isLiveItem &&
+          liveMatchesCount > 0 && (
+            <span className="absolute -right-4 -top-2 min-w-5 rounded-full bg-red-500 px-1 text-center text-[9px] leading-5 text-white">
+              {liveMatchesCount > 99
+                ? "99+"
+                : liveMatchesCount}
+            </span>
+          )}
       </span>
 
-      <span className="max-w-full truncate">
-        {label}
-      </span>
-
-      {isLive && (
-        <span className="absolute right-[22%] top-2.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-[#091a28]" />
-      )}
+      {label}
     </Link>
   );
 }

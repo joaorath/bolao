@@ -371,23 +371,24 @@ export default function PoolDetailsPage() {
   }
 
   function handleResultSaved(
-    matchId: string,
-    homeScore: number,
-    awayScore: number,
-  ) {
-    setMatches((currentMatches) =>
-      currentMatches.map((match) =>
-        match.id === matchId
-          ? {
-              ...match,
-              status: "FINISHED",
-              homeScore,
-              awayScore,
-            }
-          : match,
-      ),
-    );
-  }
+  matchId: string,
+  homeScore: number | undefined,
+  awayScore: number | undefined,
+  status: MatchStatus,
+) {
+  setMatches((currentMatches) =>
+    currentMatches.map((match) =>
+      match.id === matchId
+        ? {
+            ...match,
+            status,
+            homeScore,
+            awayScore,
+          }
+        : match,
+    ),
+  );
+}
 
   if (loading) {
     return (

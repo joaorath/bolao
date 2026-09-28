@@ -47,6 +47,13 @@ type DatabasePoolMatch = {
     | null;
 };
 
+type DatabaseMatchStatus = {
+  match_id: string;
+  status: string;
+  official_home_score: number | null;
+  official_away_score: number | null;
+};
+
 export function PredictionList({
   poolId,
 }: PredictionListProps) {
@@ -88,7 +95,7 @@ export function PredictionList({
 
       if (!user) {
         setLoadError(
-          "Sua sessão expirou.",
+          "Sua sessão expirou. Entre novamente.",
         );
 
         setLoading(false);
@@ -134,9 +141,7 @@ export function PredictionList({
 
         supabase
           .from("pools")
-          .select(
-            "id, competition",
-          ),
+          .select("id, competition"),
       ]);
 
       if (poolMatchesResult.error) {
@@ -147,6 +152,20 @@ export function PredictionList({
 
         setLoadError(
           "Não foi possível carregar os jogos.",
+        );
+
+        setLoading(false);
+        return;
+      }
+
+      if (predictionsResult.error) {
+        console.error(
+          "Erro ao carregar palpites:",
+          predictionsResult.error,
+        );
+
+        setLoadError(
+          "Não foi possível carregar seus palpites.",
         );
 
         setLoading(false);
@@ -244,32 +263,125 @@ export function PredictionList({
 
       setPredictions(loadedPredictions);
 
-      const currentPool =
-        poolsResult.data?.find(
-          (pool) => pool.id === poolId,
+      if (poolsResult.error) {
+        console.error(
+          "Erro ao carregar bolões compatíveis:",
+          poolsResult.error,
         );
 
-      if (currentPool) {
-        const compatibleIds =
-          (poolsResult.data ?? [])
-            .filter(
-              (pool) =>
-                pool.competition ===
-                currentPool.competition,
-            )
-            .map((pool) => pool.id);
+        setCompatiblePoolIds([poolId]);
+      } else {
+        const currentPool =
+          poolsResult.data?.find(
+            (pool) => pool.id === poolId,
+          );
 
-        setCompatiblePoolIds(
-          compatibleIds.length > 0
-            ? compatibleIds
-            : [poolId],
-        );
+        if (currentPool) {
+          const compatibleIds =
+            (poolsResult.data ?? [])
+              .filter(
+                (pool) =>
+                  pool.competition ===
+                  currentPool.competition,
+              )
+              .map((pool) => pool.id);
+
+          setCompatiblePoolIds(
+            compatibleIds.length > 0
+              ? compatibleIds
+              : [poolId],
+          );
+        }
       }
 
       setLoading(false);
     }
 
     loadData();
+  }, [poolId]);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    async function refreshMatchStatuses() {
+      const { data, error } = await supabase
+        .from("pool_matches")
+        .select(`
+          match_id,
+          status,
+          official_home_score,
+          official_away_score
+        `)
+        .eq("pool_id", poolId);
+
+      if (error) {
+        console.error(
+          "Erro ao atualizar status dos jogos:",
+          error,
+        );
+
+        return;
+      }
+
+      const currentStatuses =
+        (data ?? []) as DatabaseMatchStatus[];
+
+      setMatches((currentMatches) =>
+        currentMatches.map((match) => {
+          const updatedMatch =
+            currentStatuses.find(
+              (item) =>
+                item.match_id === match.id,
+            );
+
+          if (!updatedMatch) {
+            return match;
+          }
+
+          return {
+            ...match,
+            status:
+              updatedMatch.status as MatchStatus,
+            homeScore:
+              updatedMatch
+                .official_home_score ??
+              undefined,
+            awayScore:
+              updatedMatch
+                .official_away_score ??
+              undefined,
+          };
+        }),
+      );
+    }
+
+    const interval = window.setInterval(
+      refreshMatchStatuses,
+      10000,
+    );
+
+    function handleVisibilityChange() {
+      if (
+        document.visibilityState ===
+        "visible"
+      ) {
+        refreshMatchStatuses();
+      }
+    }
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange,
+    );
+
+    return () => {
+      window.clearInterval(interval);
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange,
+      );
+    };
   }, [poolId]);
 
   function handlePredictionSaved(
@@ -312,7 +424,13 @@ export function PredictionList({
           </p>
         </div>
 
-        <label className="flex cursor-pointer items-center gap-3 text-sm text-slate-300">
+        <label
+          className={`flex items-center gap-3 text-sm ${
+            compatiblePoolIds.length < 2
+              ? "cursor-not-allowed text-slate-600"
+              : "cursor-pointer text-slate-300"
+          }`}
+        >
           <input
             type="checkbox"
             checked={applyToAllPools}
@@ -395,8 +513,10 @@ function PredictionEditor({
   const [feedback, setFeedback] =
     useState("");
 
-  const [feedbackIsError, setFeedbackIsError] =
-    useState(false);
+  const [
+    feedbackIsError,
+    setFeedbackIsError,
+  ] = useState(false);
 
   const [saving, setSaving] =
     useState(false);
@@ -434,6 +554,15 @@ function PredictionEditor({
     event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
+
+    if (locked) {
+      setFeedback(
+        "Os palpites desta partida estão encerrados.",
+      );
+
+      setFeedbackIsError(true);
+      return;
+    }
 
     const parsedHomeScore =
       Number(homeScore);
@@ -501,7 +630,9 @@ function PredictionEditor({
       );
 
       setFeedback(
-        "Não foi possível salvar o palpite.",
+        getPredictionErrorMessage(
+          error.message,
+        ),
       );
 
       setFeedbackIsError(true);
@@ -540,20 +671,32 @@ function PredictionEditor({
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-2xl border border-slate-800 bg-[#0e2131] p-5"
+      className={`rounded-2xl border bg-[#0e2131] p-4 sm:p-5 ${
+        match.status === "LIVE"
+          ? "border-red-400/40"
+          : match.status === "HALFTIME"
+            ? "border-amber-400/40"
+            : "border-slate-800"
+      }`}
     >
       <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-lime-400">
-            Rodada {match.round}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-lime-400">
+              Rodada {match.round}
+            </span>
 
-          <p className="mt-1 text-sm text-slate-400">
+            <MatchStatusBadge
+              status={match.status}
+            />
+          </div>
+
+          <p className="mt-2 text-sm text-slate-400">
             {matchDate} · {match.stadium}
           </p>
         </div>
 
-        <div className="flex items-center justify-center gap-3">
+        <div className="grid w-full grid-cols-[minmax(0,1fr)_56px_auto_56px_minmax(0,1fr)] items-center gap-2 md:w-auto md:gap-3">
           <TeamName
             abbreviation={
               match.homeTeam.abbreviation
@@ -601,6 +744,12 @@ function PredictionEditor({
             >
               {feedback}
             </span>
+          ) : locked ? (
+            <span className="text-amber-400">
+              {getLockedMessage(
+                match.status,
+              )}
+            </span>
           ) : savedPrediction ? (
             <span className="text-slate-400">
               Salvo:{" "}
@@ -619,13 +768,15 @@ function PredictionEditor({
         <button
           type="submit"
           disabled={locked || saving}
-          className="rounded-xl bg-lime-400 px-5 py-2.5 text-sm font-extrabold text-slate-950 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+          className="w-full rounded-xl bg-lime-400 px-5 py-2.5 text-sm font-extrabold text-slate-950 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 sm:w-auto"
         >
           {locked
             ? "Palpite encerrado"
             : saving
               ? "Salvando..."
-              : "Salvar palpite"}
+              : savedPrediction
+                ? "Atualizar palpite"
+                : "Salvar palpite"}
         </button>
       </div>
     </form>
@@ -655,7 +806,7 @@ function ScoreInput({
       onChange={(event) =>
         onChange(event.target.value)
       }
-      className="h-12 w-14 rounded-xl border border-slate-700 bg-slate-950 text-center text-lg font-extrabold outline-none transition focus:border-lime-400 disabled:opacity-50"
+      className="h-12 w-14 rounded-xl border border-slate-700 bg-slate-950 text-center text-lg font-extrabold outline-none transition focus:border-lime-400 disabled:cursor-not-allowed disabled:opacity-50"
     />
   );
 }
@@ -671,7 +822,7 @@ function TeamName({
 }) {
   return (
     <div
-      className={`w-20 ${
+      className={`min-w-0 ${
         align === "right"
           ? "text-right"
           : "text-left"
@@ -681,9 +832,135 @@ function TeamName({
         {abbreviation}
       </strong>
 
-      <span className="hidden text-xs text-slate-500 sm:block">
+      <span className="hidden truncate text-xs text-slate-500 sm:block">
         {name}
       </span>
     </div>
   );
+}
+
+function MatchStatusBadge({
+  status,
+}: {
+  status: MatchStatus;
+}) {
+  const labels: Record<
+    string,
+    string
+  > = {
+    OPEN: "ABERTO",
+    SCHEDULED: "AGENDADO",
+    LIVE: "AO VIVO",
+    HALFTIME: "INTERVALO",
+    FINISHED: "ENCERRADO",
+    POSTPONED: "ADIADO",
+    CANCELLED: "CANCELADO",
+  };
+
+  const styles: Record<
+    string,
+    string
+  > = {
+    OPEN:
+      "bg-emerald-400/10 text-emerald-400",
+    SCHEDULED:
+      "bg-sky-400/10 text-sky-400",
+    LIVE:
+      "bg-red-400/10 text-red-400",
+    HALFTIME:
+      "bg-amber-400/10 text-amber-400",
+    FINISHED:
+      "bg-slate-500/10 text-slate-400",
+    POSTPONED:
+      "bg-purple-400/10 text-purple-400",
+    CANCELLED:
+      "bg-red-400/10 text-red-300",
+  };
+
+  return (
+    <span
+      className={`rounded-full px-2 py-1 text-[10px] font-bold ${
+        styles[status] ??
+        "bg-slate-500/10 text-slate-400"
+      }`}
+    >
+      {labels[status] ?? status}
+    </span>
+  );
+}
+
+function getLockedMessage(
+  status: MatchStatus,
+) {
+  if (status === "LIVE") {
+    return "A partida começou. Seu palpite está bloqueado.";
+  }
+
+  if (status === "HALFTIME") {
+    return "A partida está no intervalo. Seu palpite está bloqueado.";
+  }
+
+  if (status === "FINISHED") {
+    return "Partida encerrada. O palpite não pode mais ser alterado.";
+  }
+
+  if (status === "POSTPONED") {
+    return "Esta partida foi adiada.";
+  }
+
+  if (status === "CANCELLED") {
+    return "Esta partida foi cancelada.";
+  }
+
+  return "Os palpites desta partida estão encerrados.";
+}
+
+function getPredictionErrorMessage(
+  message: string,
+) {
+  const normalizedMessage =
+    message.toLowerCase();
+
+  if (
+    normalizedMessage.includes(
+      "encerrad",
+    )
+  ) {
+    return "A partida já começou e o palpite não pode mais ser alterado.";
+  }
+
+  if (
+    normalizedMessage.includes(
+      "próprios palpites",
+    ) ||
+    normalizedMessage.includes(
+      "proprios palpites",
+    )
+  ) {
+    return "Você só pode alterar seus próprios palpites.";
+  }
+
+  if (
+    normalizedMessage.includes(
+      "row-level security",
+    ) ||
+    normalizedMessage.includes(
+      "permission denied",
+    )
+  ) {
+    return "Você não possui permissão para salvar este palpite.";
+  }
+
+  if (
+    normalizedMessage.includes(
+      "partida não encontrada",
+    ) ||
+    normalizedMessage.includes(
+      "partida nao encontrada",
+    )
+  ) {
+    return "Esta partida não está disponível no bolão selecionado.";
+  }
+
+  return "Não foi possível salvar o palpite. Tente novamente.";
 }
