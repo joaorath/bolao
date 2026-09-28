@@ -17,9 +17,9 @@ type NavigationUserProps = {
 
 const navigationItems = [
   {
-    href: "/",
-    label: "Início",
-    icon: "⌂",
+    href: "/palpites",
+    label: "Palpites",
+    icon: "🎯",
   },
   {
     href: "/boloes",
@@ -34,23 +34,22 @@ const navigationItems = [
   {
     href: "/ranking",
     label: "Ranking",
-    icon: "♜",
+    icon: "🏆",
   },
   {
     href: "/conta",
     label: "Perfil",
-    icon: "◉",
+    icon: "👤",
   },
 ];
 
 function useActiveRoute(href: string) {
   const pathname = usePathname();
 
-  if (href === "/") {
-    return pathname === "/";
-  }
-
-  return pathname.startsWith(href);
+  return (
+    pathname === href ||
+    pathname.startsWith(`${href}/`)
+  );
 }
 
 export function Sidebar({
@@ -59,8 +58,9 @@ export function Sidebar({
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-slate-800 bg-[#091a28] px-5 py-7 lg:flex">
       <Link
-        href="/"
+        href="/palpites"
         className="flex items-center gap-3"
+        aria-label="Ir para os palpites"
       >
         <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-lime-400 text-sm font-black text-slate-950">
           CL
@@ -77,7 +77,10 @@ export function Sidebar({
         </div>
       </Link>
 
-      <nav className="mt-12 space-y-2">
+      <nav
+        className="mt-12 space-y-2"
+        aria-label="Navegação principal"
+      >
         {navigationItems.map((item) => (
           <SidebarLink
             key={item.href}
@@ -124,7 +127,10 @@ export function Sidebar({
         </div>
       </Link>
 
-      <form action={logout} className="mt-2">
+      <form
+        action={logout}
+        className="mt-2"
+      >
         <button
           type="submit"
           className="w-full rounded-xl border border-red-400/20 px-4 py-2 text-sm font-bold text-red-400 transition hover:bg-red-400/10"
@@ -136,7 +142,7 @@ export function Sidebar({
   );
 }
 
-type SidebarLinkProps = {
+type NavigationLinkProps = {
   href: string;
   label: string;
   icon: string;
@@ -146,12 +152,14 @@ function SidebarLink({
   href,
   label,
   icon,
-}: SidebarLinkProps) {
+}: NavigationLinkProps) {
   const active = useActiveRoute(href);
+  const isLive = label === "Ao vivo";
 
   return (
     <Link
       href={href}
+      aria-current={active ? "page" : undefined}
       className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
         active
           ? "bg-slate-800 text-white shadow-[inset_3px_0_0_#a3e635]"
@@ -160,7 +168,7 @@ function SidebarLink({
     >
       <span
         className={
-          label === "Ao vivo"
+          isLive
             ? "text-red-500"
             : ""
         }
@@ -170,7 +178,7 @@ function SidebarLink({
 
       {label}
 
-      {label === "Ao vivo" && (
+      {isLive && (
         <span className="ml-auto rounded-full bg-red-500 px-2 py-0.5 text-[10px] text-white">
           1
         </span>
@@ -181,7 +189,10 @@ function SidebarLink({
 
 export function MobileNavigation() {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 grid h-20 grid-cols-5 border-t border-slate-800 bg-[#091a28]/95 backdrop-blur lg:hidden">
+    <nav
+      className="fixed inset-x-0 bottom-0 z-50 grid min-h-20 grid-cols-5 border-t border-slate-800 bg-[#091a28]/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl lg:hidden"
+      aria-label="Navegação para celular"
+    >
       {navigationItems.map((item) => (
         <MobileLink
           key={item.href}
@@ -196,21 +207,27 @@ function MobileLink({
   href,
   label,
   icon,
-}: SidebarLinkProps) {
+}: NavigationLinkProps) {
   const active = useActiveRoute(href);
+  const isLive = label === "Ao vivo";
 
   return (
     <Link
       href={href}
-      className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold ${
+      aria-current={active ? "page" : undefined}
+      className={`relative flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-3 text-[10px] font-bold transition ${
         active
           ? "text-lime-400"
           : "text-slate-500"
       }`}
     >
+      {active && (
+        <span className="absolute top-0 h-0.5 w-8 rounded-full bg-lime-400" />
+      )}
+
       <span
         className={`text-lg ${
-          label === "Ao vivo"
+          isLive
             ? "text-red-500"
             : ""
         }`}
@@ -218,7 +235,13 @@ function MobileLink({
         {icon}
       </span>
 
-      {label}
+      <span className="max-w-full truncate">
+        {label}
+      </span>
+
+      {isLive && (
+        <span className="absolute right-[22%] top-2.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-[#091a28]" />
+      )}
     </Link>
   );
 }

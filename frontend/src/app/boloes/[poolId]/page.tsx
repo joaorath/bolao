@@ -23,7 +23,7 @@ import type {
 const tabs = [
   {
     id: "overview",
-    label: "Visão geral",
+    label: "Rodada atual",
   },
   {
     id: "predictions",
