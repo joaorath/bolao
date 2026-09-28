@@ -59,6 +59,7 @@ export type PoolSummary = {
   visibility?: PoolVisibility;
   matchSelectionMode: MatchSelectionMode;
   isOwner?: boolean;
+  isGlobal?: boolean;
 };
 
 export type RankingEntry = {

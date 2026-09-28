@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { PoolResultsManager } from "@/components/pool-results-manager";
 
 import {
   useEffect,
@@ -11,6 +10,7 @@ import {
 
 import { PoolCardActions } from "@/components/pool-card-actions";
 import { PoolRanking } from "@/components/pool-ranking";
+import { PoolResultsManager } from "@/components/pool-results-manager";
 import { PredictionList } from "@/components/prediction-list";
 import { createClient } from "@/lib/supabase/client";
 
@@ -60,27 +60,35 @@ type DatabasePoolMatch = {
   official_home_score: number | null;
   official_away_score: number | null;
   matches:
-  | DatabaseMatch
-  | DatabaseMatch[]
-  | null;
+    | DatabaseMatch
+    | DatabaseMatch[]
+    | null;
 };
 
 type DatabasePool = {
   id: string;
-  owner_id: string;
+  owner_id: string | null;
   name: string;
   description: string | null;
   competition: string;
   visibility: string;
   invite_code: string;
+  is_global: boolean;
   pool_members:
-  | Array<{
-    count: number;
-  }>
-  | null;
+    | Array<{
+        count: number;
+      }>
+    | null;
   pool_matches:
-  | DatabasePoolMatch[]
-  | null;
+    | DatabasePoolMatch[]
+    | null;
+};
+
+type DatabaseRankingEntry = {
+  user_id: string;
+  ranking_position: number | string;
+  points: number | string;
+  is_current_user: boolean;
 };
 
 export default function PoolDetailsPage() {
@@ -126,10 +134,7 @@ export default function PoolDetailsPage() {
         return;
       }
 
-      const {
-        data,
-        error,
-      } = await supabase
+      const { data, error } = await supabase
         .from("pools")
         .select(`
           id,
@@ -139,6 +144,7 @@ export default function PoolDetailsPage() {
           competition,
           visibility,
           invite_code,
+          is_global,
           pool_members(count),
           pool_matches(
             status,
@@ -169,6 +175,7 @@ export default function PoolDetailsPage() {
         );
 
         setPool(null);
+
         setLoadError(
           "Bolão não encontrado ou você não participa dele.",
         );
@@ -184,6 +191,43 @@ export default function PoolDetailsPage() {
         databasePool.pool_members?.[0]
           ?.count ?? 0;
 
+      const {
+        data: rankingData,
+        error: rankingError,
+      } = await supabase.rpc(
+        "get_pool_ranking_summary",
+        {
+          target_pool_id:
+            databasePool.id,
+          ranking_limit: 100,
+        },
+      );
+
+      if (rankingError) {
+        console.error(
+          "Erro ao carregar resumo do ranking:",
+          rankingError,
+        );
+      }
+
+      const ranking =
+        (rankingData ??
+          []) as DatabaseRankingEntry[];
+
+      const currentUserEntry =
+        ranking.find(
+          (entry) =>
+            entry.is_current_user,
+        );
+
+      const leaderEntry =
+        ranking.find(
+          (entry) =>
+            Number(
+              entry.ranking_position,
+            ) === 1,
+        );
+
       setPool({
         id: databasePool.id,
         name: databasePool.name,
@@ -192,20 +236,42 @@ export default function PoolDetailsPage() {
         competition:
           databasePool.competition,
         participantCount,
-        position: 1,
-        points: 0,
-        leaderPoints: 0,
+
+        position: currentUserEntry
+          ? Number(
+              currentUserEntry
+                .ranking_position,
+            )
+          : 0,
+
+        points: currentUserEntry
+          ? Number(
+              currentUserEntry.points,
+            )
+          : 0,
+
+        leaderPoints: leaderEntry
+          ? Number(leaderEntry.points)
+          : 0,
+
         inviteCode:
           databasePool.invite_code,
+
         visibility:
           databasePool.visibility ===
-            "PUBLIC"
+          "PUBLIC"
             ? "PUBLIC"
             : "PRIVATE",
+
         matchSelectionMode:
           "ALL_COMPETITION",
+
         isOwner:
+          !databasePool.is_global &&
           databasePool.owner_id === user.id,
+
+        isGlobal:
+          databasePool.is_global,
       });
 
       const loadedMatches: Match[] = [];
@@ -266,12 +332,15 @@ export default function PoolDetailsPage() {
         });
       }
 
-      loadedMatches.sort((first, second) => {
-        return (
-          new Date(first.startsAt).getTime() -
-          new Date(second.startsAt).getTime()
-        );
-      });
+      loadedMatches.sort(
+        (firstMatch, secondMatch) =>
+          new Date(
+            firstMatch.startsAt,
+          ).getTime() -
+          new Date(
+            secondMatch.startsAt,
+          ).getTime(),
+      );
 
       setMatches(loadedMatches);
       setLoading(false);
@@ -281,7 +350,10 @@ export default function PoolDetailsPage() {
   }, [params.poolId]);
 
   async function copyInviteCode() {
-    if (!pool?.inviteCode) {
+    if (
+      !pool?.inviteCode ||
+      pool.isGlobal
+    ) {
       return;
     }
 
@@ -307,11 +379,11 @@ export default function PoolDetailsPage() {
       currentMatches.map((match) =>
         match.id === matchId
           ? {
-            ...match,
-            status: "FINISHED",
-            homeScore,
-            awayScore,
-          }
+              ...match,
+              status: "FINISHED",
+              homeScore,
+              awayScore,
+            }
           : match,
       ),
     );
@@ -328,7 +400,9 @@ export default function PoolDetailsPage() {
   if (!pool) {
     return (
       <div className="mx-auto max-w-3xl rounded-2xl border border-slate-800 bg-[#0e2131] p-8 text-center">
-        <span className="text-4xl">⚽</span>
+        <span className="text-4xl">
+          ⚽
+        </span>
 
         <h1 className="mt-4 text-2xl font-extrabold">
           Bolão não encontrado
@@ -358,12 +432,26 @@ export default function PoolDetailsPage() {
         ← Voltar para bolões
       </Link>
 
-      <header className="mt-6 rounded-3xl border border-slate-800 bg-[#0e2131] p-6 md:p-8">
+      <header
+        className={`mt-6 rounded-3xl border p-6 md:p-8 ${
+          pool.isGlobal
+            ? "border-lime-400/30 bg-gradient-to-br from-lime-400/10 to-[#0e2131]"
+            : "border-slate-800 bg-[#0e2131]"
+        }`}
+      >
         <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
           <div>
-            <span className="text-xs font-extrabold tracking-[0.2em] text-lime-400">
-              {pool.competition.toUpperCase()}
-            </span>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-xs font-extrabold tracking-[0.2em] text-lime-400">
+                {pool.competition.toUpperCase()}
+              </span>
+
+              {pool.isGlobal && (
+                <span className="rounded-full border border-lime-400/30 bg-lime-400/10 px-3 py-1 text-[10px] font-extrabold text-lime-400">
+                  BOLÃO OFICIAL
+                </span>
+              )}
+            </div>
 
             <h1 className="mt-3 text-3xl font-extrabold md:text-4xl">
               {pool.name}
@@ -382,17 +470,29 @@ export default function PoolDetailsPage() {
             </p>
           </div>
 
-          <PoolCardActions
-            poolId={pool.id}
-            poolName={pool.name}
-            isOwner={Boolean(pool.isOwner)}
-          />
+          {pool.isGlobal ? (
+            <span className="w-fit rounded-xl border border-lime-400/30 px-4 py-3 text-sm font-bold text-lime-400">
+              Participação automática
+            </span>
+          ) : (
+            <PoolCardActions
+              poolId={pool.id}
+              poolName={pool.name}
+              isOwner={Boolean(
+                pool.isOwner,
+              )}
+            />
+          )}
         </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           <SummaryCard
             label="Sua posição"
-            value={`${pool.position}º`}
+            value={
+              pool.position > 0
+                ? `${pool.position}º`
+                : "-"
+            }
           />
 
           <SummaryCard
@@ -402,27 +502,38 @@ export default function PoolDetailsPage() {
 
           <SummaryCard
             label="Pontos do líder"
-            value={String(pool.leaderPoints)}
+            value={String(
+              pool.leaderPoints,
+            )}
           />
         </div>
       </header>
 
       <nav className="mt-6 flex gap-2 overflow-x-auto border-b border-slate-800 pb-3">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() =>
-              setActiveTab(tab.id)
-            }
-            className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${activeTab === tab.id
-              ? "bg-lime-400 text-slate-950"
-              : "text-slate-400 hover:bg-slate-800 hover:text-white"
+        {tabs.map((tab) => {
+          const label =
+            pool.isGlobal &&
+            tab.id === "ranking"
+              ? "Ranking Geral"
+              : tab.label;
+
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() =>
+                setActiveTab(tab.id)
+              }
+              className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${
+                activeTab === tab.id
+                  ? "bg-lime-400 text-slate-950"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
               }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+            >
+              {label}
+            </button>
+          );
+        })}
       </nav>
 
       <main className="mt-6">
@@ -436,26 +547,29 @@ export default function PoolDetailsPage() {
         )}
 
         {activeTab === "predictions" && (
-          <PredictionList poolId={pool.id} />
+          <PredictionList
+            poolId={pool.id}
+          />
         )}
 
         {activeTab === "ranking" && (
-          <PoolRanking poolId={pool.id} />
+          <PoolRanking
+            poolId={pool.id}
+          />
         )}
 
         {activeTab === "rounds" && (
           <>
-            {pool.isOwner && (
-              <PoolResultsManager
-                poolId={pool.id}
-                matches={matches}
-                onResultSaved={
-                  handleResultSaved
-                }
-              />
-            )}
+            <PoolResultsManager
+              matches={matches}
+              onResultSaved={
+                handleResultSaved
+              }
+            />
 
-            <RoundsTab matches={matches} />
+            <RoundsTab
+              matches={matches}
+            />
           </>
         )}
       </main>
@@ -476,27 +590,39 @@ function OverviewTab({
 }) {
   const featuredMatch =
     matches.find(
-      (match) => match.status === "LIVE",
-    ) ?? matches[0];
+      (match) =>
+        match.status === "LIVE",
+    ) ??
+    matches.find(
+      (match) =>
+        match.status !== "FINISHED",
+    ) ??
+    matches[0];
 
   return (
     <div className="grid gap-5 lg:grid-cols-3">
-      <section className="rounded-2xl border border-slate-800 bg-[#0e2131] p-6 lg:col-span-2">
+      <section className="rounded-2xl border border-slate-800 bg-[#0e2131] p-5 sm:p-6 lg:col-span-2">
         {featuredMatch ? (
           <>
             <span className="text-xs font-extrabold tracking-[0.2em] text-lime-400">
               {featuredMatch.status === "LIVE"
                 ? "AO VIVO"
-                : `RODADA ${featuredMatch.round}`}
+                : featuredMatch.status ===
+                    "FINISHED"
+                  ? "ENCERRADO"
+                  : `RODADA ${featuredMatch.round}`}
             </span>
 
             <h2 className="mt-3 text-xl font-extrabold">
               {featuredMatch.status === "LIVE"
                 ? "Partida em andamento"
-                : "Próxima partida"}
+                : featuredMatch.status ===
+                    "FINISHED"
+                  ? "Último resultado"
+                  : "Próxima partida"}
             </h2>
 
-            <div className="mt-7 flex items-center justify-center gap-5">
+            <div className="mt-7 grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-5">
               <Team
                 abbreviation={
                   featuredMatch.homeTeam
@@ -507,10 +633,12 @@ function OverviewTab({
                 }
               />
 
-              <div className="rounded-2xl bg-slate-950 px-6 py-4 text-3xl font-extrabold">
-                {featuredMatch.homeScore ?? "-"}{" "}
-                ×{" "}
-                {featuredMatch.awayScore ?? "-"}
+              <div className="rounded-2xl bg-slate-950 px-4 py-4 text-2xl font-extrabold sm:px-6 sm:text-3xl">
+                {featuredMatch.homeScore ??
+                  "-"}
+                {" × "}
+                {featuredMatch.awayScore ??
+                  "-"}
               </div>
 
               <Team
@@ -548,30 +676,47 @@ function OverviewTab({
           </p>
         </section>
 
-        {pool.inviteCode && (
-          <section className="rounded-2xl border border-slate-800 bg-[#0e2131] p-6">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Código de convite
+        {pool.isGlobal ? (
+          <section className="rounded-2xl border border-lime-400/20 bg-lime-400/5 p-6">
+            <span className="text-xs font-bold uppercase tracking-wider text-lime-400">
+              Disputa oficial
             </span>
 
-            <strong className="mt-2 block text-2xl tracking-widest text-lime-400">
-              {pool.inviteCode}
+            <strong className="mt-2 block">
+              Ranking Geral
             </strong>
 
-            <button
-              type="button"
-              onClick={onCopyInvite}
-              className="mt-4 rounded-xl border border-slate-700 px-4 py-2 text-sm font-bold transition hover:border-lime-400"
-            >
-              Copiar código
-            </button>
-
-            {copyMessage && (
-              <p className="mt-3 text-sm text-emerald-400">
-                {copyMessage}
-              </p>
-            )}
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              Todas as contas participam
+              automaticamente desta disputa.
+            </p>
           </section>
+        ) : (
+          pool.inviteCode && (
+            <section className="rounded-2xl border border-slate-800 bg-[#0e2131] p-6">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Código de convite
+              </span>
+
+              <strong className="mt-2 block text-2xl tracking-widest text-lime-400">
+                {pool.inviteCode}
+              </strong>
+
+              <button
+                type="button"
+                onClick={onCopyInvite}
+                className="mt-4 rounded-xl border border-slate-700 px-4 py-2 text-sm font-bold transition hover:border-lime-400"
+              >
+                Copiar código
+              </button>
+
+              {copyMessage && (
+                <p className="mt-3 text-sm text-emerald-400">
+                  {copyMessage}
+                </p>
+              )}
+            </section>
+          )
         )}
       </div>
     </div>
@@ -585,8 +730,13 @@ function RoundsTab({
 }) {
   const rounds = Array.from(
     new Set(
-      matches.map((match) => match.round),
+      matches.map(
+        (match) => match.round,
+      ),
     ),
+  ).sort(
+    (firstRound, secondRound) =>
+      firstRound - secondRound,
   );
 
   if (rounds.length === 0) {
@@ -618,24 +768,47 @@ function RoundsTab({
                 >
                   <div>
                     <strong>
-                      {match.homeTeam.name} ×{" "}
+                      {match.homeTeam.name}
+                      {" × "}
                       {match.awayTeam.name}
                     </strong>
 
                     <p className="mt-1 text-sm text-slate-500">
                       {match.stadium}
                     </p>
+
+                    {match.status ===
+                      "FINISHED" &&
+                      match.homeScore !==
+                        undefined &&
+                      match.awayScore !==
+                        undefined && (
+                        <strong className="mt-2 block text-lime-400">
+                          {match.homeScore}
+                          {" × "}
+                          {match.awayScore}
+                        </strong>
+                      )}
                   </div>
 
                   <span
-                    className={`rounded-full px-3 py-1 text-xs font-bold ${match.status === "FINISHED"
-                      ? "bg-slate-500/10 text-slate-400"
-                      : "bg-emerald-400/10 text-emerald-400"
-                      }`}
+                    className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${
+                      match.status ===
+                      "FINISHED"
+                        ? "bg-slate-500/10 text-slate-400"
+                        : match.status ===
+                            "LIVE"
+                          ? "bg-red-400/10 text-red-400"
+                          : "bg-emerald-400/10 text-emerald-400"
+                    }`}
                   >
-                    {match.status === "FINISHED"
+                    {match.status ===
+                    "FINISHED"
                       ? "ENCERRADO"
-                      : "PALPITES ABERTOS"}
+                      : match.status ===
+                          "LIVE"
+                        ? "AO VIVO"
+                        : "PALPITES ABERTOS"}
                   </span>
                 </div>
               ))}
@@ -659,7 +832,7 @@ function SummaryCard({
         {label}
       </span>
 
-      <strong className="mt-2 block text-2xl">
+      <strong className="mt-2 block text-xl sm:text-2xl">
         {value}
       </strong>
     </div>
@@ -674,12 +847,12 @@ function Team({
   name: string;
 }) {
   return (
-    <div className="text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-800 font-extrabold">
+    <div className="min-w-0 text-center">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-800 text-sm font-extrabold sm:h-14 sm:w-14">
         {abbreviation}
       </div>
 
-      <strong className="mt-2 block">
+      <strong className="mt-2 block truncate text-xs sm:text-base">
         {name}
       </strong>
     </div>
