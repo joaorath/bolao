@@ -42,9 +42,9 @@ type DatabasePoolMatch = {
   official_home_score: number | null;
   official_away_score: number | null;
   matches:
-    | DatabaseMatch
-    | DatabaseMatch[]
-    | null;
+  | DatabaseMatch
+  | DatabaseMatch[]
+  | null;
 };
 
 type DatabaseMatchStatus = {
@@ -80,7 +80,7 @@ export function PredictionList({
     useState("");
 
   const [applyToAllPools, setApplyToAllPools] =
-    useState(false);
+    useState(true);
 
   useEffect(() => {
     async function loadData() {
@@ -176,8 +176,8 @@ export function PredictionList({
 
       for (
         const item of
-          (poolMatchesResult.data ??
-            []) as unknown as DatabasePoolMatch[]
+        (poolMatchesResult.data ??
+          []) as unknown as DatabasePoolMatch[]
       ) {
         const databaseMatch =
           Array.isArray(item.matches)
@@ -247,7 +247,7 @@ export function PredictionList({
 
       for (
         const prediction of
-          predictionsResult.data ?? []
+        predictionsResult.data ?? []
       ) {
         loadedPredictions[
           prediction.match_id
@@ -425,11 +425,10 @@ export function PredictionList({
         </div>
 
         <label
-          className={`flex items-center gap-3 text-sm ${
-            compatiblePoolIds.length < 2
+          className={`flex items-center gap-3 text-sm ${compatiblePoolIds.length < 2
               ? "cursor-not-allowed text-slate-600"
               : "cursor-pointer text-slate-300"
-          }`}
+            }`}
         >
           <input
             type="checkbox"
@@ -445,8 +444,16 @@ export function PredictionList({
             className="h-4 w-4 accent-lime-400"
           />
 
-          Aplicar aos meus bolões
+          Aplicar este palpite em todos os meus bolões
         </label>
+        {compatiblePoolIds.length > 1 &&
+          !applyToAllPools && (
+            <p className="text-xs leading-5 text-amber-400 sm:text-right">
+              Atenção: o palpite será salvo somente
+              neste bolão e pode não contar no
+              Ranking Geral.
+            </p>
+          )}
       </div>
 
       {matches.length === 0 ? (
@@ -525,16 +532,16 @@ function PredictionEditor({
     setHomeScore(
       savedPrediction
         ? String(
-            savedPrediction.homeScore,
-          )
+          savedPrediction.homeScore,
+        )
         : "",
     );
 
     setAwayScore(
       savedPrediction
         ? String(
-            savedPrediction.awayScore,
-          )
+          savedPrediction.awayScore,
+        )
         : "",
     );
 
@@ -671,13 +678,12 @@ function PredictionEditor({
   return (
     <form
       onSubmit={handleSubmit}
-      className={`rounded-2xl border bg-[#0e2131] p-4 sm:p-5 ${
-        match.status === "LIVE"
+      className={`rounded-2xl border bg-[#0e2131] p-4 sm:p-5 ${match.status === "LIVE"
           ? "border-red-400/40"
           : match.status === "HALFTIME"
             ? "border-amber-400/40"
             : "border-slate-800"
-      }`}
+        }`}
     >
       <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
         <div>
@@ -822,11 +828,10 @@ function TeamName({
 }) {
   return (
     <div
-      className={`min-w-0 ${
-        align === "right"
+      className={`min-w-0 ${align === "right"
           ? "text-right"
           : "text-left"
-      }`}
+        }`}
     >
       <strong className="block">
         {abbreviation}
@@ -879,10 +884,9 @@ function MatchStatusBadge({
 
   return (
     <span
-      className={`rounded-full px-2 py-1 text-[10px] font-bold ${
-        styles[status] ??
+      className={`rounded-full px-2 py-1 text-[10px] font-bold ${styles[status] ??
         "bg-slate-500/10 text-slate-400"
-      }`}
+        }`}
     >
       {labels[status] ?? status}
     </span>

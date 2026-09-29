@@ -86,9 +86,9 @@ export function PoolResultsManager({
       </h2>
 
       <p className="mt-2 text-sm leading-6 text-slate-400">
-        Inicie o jogo, atualize o placar durante a
-        partida e finalize para calcular os pontos
-        do ranking.
+        Atualize o andamento e o placar. Somente
+        partidas encerradas contam pontos no
+        ranking.
       </p>
 
       {matches.length === 0 ? (
@@ -201,23 +201,62 @@ function ResultEditor({
     setFeedback("");
     setFeedbackIsError(false);
 
-    const reopening =
-      newStatus === "OPEN";
-
-    const scores = reopening
-      ? {
-          homeScore: undefined,
-          awayScore: undefined,
-        }
-      : parseScores();
-
-    if (!scores) {
-      setFeedback(
-        "Informe um placar válido para os dois times.",
+    if (newStatus === "CANCELLED") {
+      const confirmed = window.confirm(
+        `Cancelar a partida "${match.homeTeam.name} × ${match.awayTeam.name}"? Os palpites não serão pontuados.`,
       );
 
-      setFeedbackIsError(true);
-      return;
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    if (newStatus === "POSTPONED") {
+      const confirmed = window.confirm(
+        `Marcar a partida "${match.homeTeam.name} × ${match.awayTeam.name}" como adiada?`,
+      );
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    const requiresScores =
+      newStatus === "LIVE" ||
+      newStatus === "HALFTIME" ||
+      newStatus === "FINISHED";
+
+    let scores: {
+      homeScore: number | undefined;
+      awayScore: number | undefined;
+    };
+
+    if (requiresScores) {
+      const parsedScores =
+        parseScores();
+
+      if (!parsedScores) {
+        setFeedback(
+          "Informe um placar válido para os dois times.",
+        );
+
+        setFeedbackIsError(true);
+        return;
+      }
+
+      scores = parsedScores;
+    } else if (
+      newStatus === "POSTPONED"
+    ) {
+      scores = {
+        homeScore: match.homeScore,
+        awayScore: match.awayScore,
+      };
+    } else {
+      scores = {
+        homeScore: undefined,
+        awayScore: undefined,
+      };
     }
 
     setSavingStatus(newStatus);
@@ -253,7 +292,11 @@ function ResultEditor({
       return;
     }
 
-    if (reopening) {
+    if (
+      newStatus === "OPEN" ||
+      newStatus === "SCHEDULED" ||
+      newStatus === "CANCELLED"
+    ) {
       setHomeScore("0");
       setAwayScore("0");
     }
@@ -274,27 +317,27 @@ function ResultEditor({
 
   return (
     <div className="rounded-xl border border-slate-800 bg-[#0e2131] p-4">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-3">
-            <strong>
-              {match.homeTeam.name} ×{" "}
-              {match.awayTeam.name}
-            </strong>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3">
+              <strong>
+                {match.homeTeam.name} ×{" "}
+                {match.awayTeam.name}
+              </strong>
 
-            <MatchStatusBadge
-              status={match.status}
-            />
+              <MatchStatusBadge
+                status={match.status}
+              />
+            </div>
+
+            <p className="mt-1 text-xs text-slate-500">
+              Rodada {match.round} ·{" "}
+              {match.stadium}
+            </p>
           </div>
 
-          <p className="mt-1 text-xs text-slate-500">
-            Rodada {match.round} ·{" "}
-            {match.stadium}
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex items-center justify-center gap-3 xl:justify-end">
             <label>
               <span className="sr-only">
                 Placar do{" "}
@@ -341,66 +384,72 @@ function ResultEditor({
               />
             </label>
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() =>
-                updateMatchStatus("OPEN")
-              }
-              className="rounded-xl border border-slate-600 px-3 py-2.5 text-xs font-bold text-slate-300 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {savingStatus === "OPEN"
-                ? "Salvando..."
-                : "Reabrir"}
-            </button>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+          <StatusButton
+            label="Reabrir"
+            loadingLabel="Reabrindo..."
+            color="slate"
+            targetStatus="OPEN"
+            savingStatus={savingStatus}
+            disabled={saving}
+            onClick={updateMatchStatus}
+          />
 
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() =>
-                updateMatchStatus("LIVE")
-              }
-              className="rounded-xl border border-red-400/40 px-3 py-2.5 text-xs font-bold text-red-400 transition hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {savingStatus === "LIVE"
-                ? "Salvando..."
-                : match.status === "LIVE"
-                  ? "Atualizar ao vivo"
-                  : "Iniciar"}
-            </button>
+          <StatusButton
+            label={
+              match.status === "LIVE"
+                ? "Atualizar ao vivo"
+                : "Iniciar"
+            }
+            loadingLabel="Atualizando..."
+            color="red"
+            targetStatus="LIVE"
+            savingStatus={savingStatus}
+            disabled={saving}
+            onClick={updateMatchStatus}
+          />
 
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() =>
-                updateMatchStatus(
-                  "HALFTIME",
-                )
-              }
-              className="rounded-xl border border-amber-400/40 px-3 py-2.5 text-xs font-bold text-amber-400 transition hover:bg-amber-400/10 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {savingStatus === "HALFTIME"
-                ? "Salvando..."
-                : "Intervalo"}
-            </button>
+          <StatusButton
+            label="Intervalo"
+            loadingLabel="Atualizando..."
+            color="amber"
+            targetStatus="HALFTIME"
+            savingStatus={savingStatus}
+            disabled={saving}
+            onClick={updateMatchStatus}
+          />
 
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() =>
-                updateMatchStatus(
-                  "FINISHED",
-                )
-              }
-              className="rounded-xl bg-amber-400 px-3 py-2.5 text-xs font-extrabold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-slate-700"
-            >
-              {savingStatus === "FINISHED"
-                ? "Salvando..."
-                : "Finalizar"}
-            </button>
-          </div>
+          <StatusButton
+            label="Adiar"
+            loadingLabel="Adiando..."
+            color="purple"
+            targetStatus="POSTPONED"
+            savingStatus={savingStatus}
+            disabled={saving}
+            onClick={updateMatchStatus}
+          />
+
+          <StatusButton
+            label="Cancelar"
+            loadingLabel="Cancelando..."
+            color="rose"
+            targetStatus="CANCELLED"
+            savingStatus={savingStatus}
+            disabled={saving}
+            onClick={updateMatchStatus}
+          />
+
+          <StatusButton
+            label="Finalizar"
+            loadingLabel="Finalizando..."
+            color="lime"
+            targetStatus="FINISHED"
+            savingStatus={savingStatus}
+            disabled={saving}
+            onClick={updateMatchStatus}
+          />
         </div>
       </div>
 
@@ -416,6 +465,67 @@ function ResultEditor({
         </p>
       )}
     </div>
+  );
+}
+
+type StatusButtonColor =
+  | "slate"
+  | "red"
+  | "amber"
+  | "purple"
+  | "rose"
+  | "lime";
+
+function StatusButton({
+  label,
+  loadingLabel,
+  color,
+  targetStatus,
+  savingStatus,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  loadingLabel: string;
+  color: StatusButtonColor;
+  targetStatus: MatchStatus;
+  savingStatus: MatchStatus | null;
+  disabled: boolean;
+  onClick: (
+    status: MatchStatus,
+  ) => void;
+}) {
+  const styles: Record<
+    StatusButtonColor,
+    string
+  > = {
+    slate:
+      "border-slate-600 text-slate-300 hover:bg-slate-800",
+    red:
+      "border-red-400/40 text-red-400 hover:bg-red-400/10",
+    amber:
+      "border-amber-400/40 text-amber-400 hover:bg-amber-400/10",
+    purple:
+      "border-purple-400/40 text-purple-400 hover:bg-purple-400/10",
+    rose:
+      "border-rose-400/40 text-rose-400 hover:bg-rose-400/10",
+    lime:
+      "border-lime-400 bg-lime-400 text-slate-950 hover:bg-lime-300",
+  };
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() =>
+        onClick(targetStatus)
+      }
+      className={`rounded-xl border px-3 py-2.5 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${styles[color]}`}
+    >
+      {savingStatus === targetStatus
+        ? loadingLabel
+        : label}
+    </button>
   );
 }
 
@@ -441,7 +551,7 @@ function MatchStatusBadge({
     POSTPONED:
       "bg-purple-400/10 text-purple-400",
     CANCELLED:
-      "bg-red-400/10 text-red-300",
+      "bg-rose-400/10 text-rose-400",
   };
 
   const labels: Record<
@@ -476,6 +586,10 @@ function getSuccessMessage(
     return "Partida reaberta e palpites liberados.";
   }
 
+  if (status === "SCHEDULED") {
+    return "Partida marcada como agendada.";
+  }
+
   if (status === "LIVE") {
     return "Placar ao vivo atualizado.";
   }
@@ -486,6 +600,14 @@ function getSuccessMessage(
 
   if (status === "FINISHED") {
     return "Partida finalizada e ranking atualizado.";
+  }
+
+  if (status === "POSTPONED") {
+    return "Partida marcada como adiada. Nenhum ponto será calculado.";
+  }
+
+  if (status === "CANCELLED") {
+    return "Partida cancelada. Os palpites não serão pontuados.";
   }
 
   return "Partida atualizada.";

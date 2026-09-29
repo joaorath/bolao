@@ -25,7 +25,9 @@ type NavigationUserProps = {
 type NavigationItem = {
   href: string;
   label: string;
+  mobileLabel?: string;
   icon: string;
+  adminOnly?: boolean;
 };
 
 const navigationItems: NavigationItem[] = [
@@ -50,6 +52,13 @@ const navigationItems: NavigationItem[] = [
     icon: "🏆",
   },
   {
+    href: "/admin/partidas",
+    label: "Administração",
+    mobileLabel: "Admin",
+    icon: "⚙️",
+    adminOnly: true,
+  },
+  {
     href: "/conta",
     label: "Perfil",
     icon: "👤",
@@ -64,6 +73,50 @@ function useActiveRoute(href: string) {
   }
 
   return pathname.startsWith(href);
+}
+
+function useIsAdmin() {
+  const [isAdmin, setIsAdmin] =
+    useState(false);
+
+  useEffect(() => {
+    async function checkAdministrator() {
+      const supabase = createClient();
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error(
+          "Erro ao verificar administrador:",
+          error,
+        );
+
+        setIsAdmin(false);
+        return;
+      }
+
+      setIsAdmin(
+        Boolean(data?.is_admin),
+      );
+    }
+
+    checkAdministrator();
+  }, []);
+
+  return isAdmin;
 }
 
 function useLiveMatchesCount() {
@@ -156,11 +209,25 @@ function useLiveMatchesCount() {
   return liveMatchesCount;
 }
 
+function getVisibleNavigationItems(
+  isAdmin: boolean,
+) {
+  return navigationItems.filter(
+    (item) =>
+      !item.adminOnly || isAdmin,
+  );
+}
+
 export function Sidebar({
   user,
 }: NavigationUserProps) {
+  const isAdmin = useIsAdmin();
+
   const liveMatchesCount =
     useLiveMatchesCount();
+
+  const visibleItems =
+    getVisibleNavigationItems(isAdmin);
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-slate-800 bg-[#091a28] px-5 py-7 lg:flex">
@@ -184,7 +251,7 @@ export function Sidebar({
       </Link>
 
       <nav className="mt-12 space-y-2">
-        {navigationItems.map((item) => (
+        {visibleItems.map((item) => (
           <SidebarLink
             key={item.href}
             {...item}
@@ -247,9 +314,10 @@ export function Sidebar({
   );
 }
 
-type NavigationLinkProps = NavigationItem & {
-  liveMatchesCount: number;
-};
+type NavigationLinkProps =
+  NavigationItem & {
+    liveMatchesCount: number;
+  };
 
 function SidebarLink({
   href,
@@ -296,12 +364,23 @@ function SidebarLink({
 }
 
 export function MobileNavigation() {
+  const isAdmin = useIsAdmin();
+
   const liveMatchesCount =
     useLiveMatchesCount();
 
+  const visibleItems =
+    getVisibleNavigationItems(isAdmin);
+
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 grid h-20 grid-cols-5 border-t border-slate-800 bg-[#091a28]/95 backdrop-blur lg:hidden">
-      {navigationItems.map((item) => (
+    <nav
+      className={`fixed inset-x-0 bottom-0 z-50 grid h-20 border-t border-slate-800 bg-[#091a28]/95 backdrop-blur lg:hidden ${
+        isAdmin
+          ? "grid-cols-6"
+          : "grid-cols-5"
+      }`}
+    >
+      {visibleItems.map((item) => (
         <MobileLink
           key={item.href}
           {...item}
@@ -317,6 +396,7 @@ export function MobileNavigation() {
 function MobileLink({
   href,
   label,
+  mobileLabel,
   icon,
   liveMatchesCount,
 }: NavigationLinkProps) {
@@ -328,7 +408,7 @@ function MobileLink({
   return (
     <Link
       href={href}
-      className={`relative flex flex-col items-center justify-center gap-1 text-[10px] font-bold ${
+      className={`relative flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-[9px] font-bold sm:text-[10px] ${
         active
           ? "text-lime-400"
           : "text-slate-500"
@@ -353,7 +433,9 @@ function MobileLink({
           )}
       </span>
 
-      {label}
+      <span className="max-w-full truncate">
+        {mobileLabel ?? label}
+      </span>
     </Link>
   );
 }
