@@ -21,6 +21,7 @@ export type Team = {
   abbreviation: string;
   primaryColor: string;
   secondaryColor: string;
+  logoUrl?: string;
 };
 
 export type Match = {
