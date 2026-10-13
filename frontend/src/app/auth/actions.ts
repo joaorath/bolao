@@ -104,7 +104,7 @@ export async function login(
   }
 
   revalidatePath("/", "layout");
-  redirect("/conta");
+  redirect("/perfil");
 }
 
 export async function signup(
@@ -340,7 +340,7 @@ export async function signup(
 
   if (data.session) {
     revalidatePath("/", "layout");
-    redirect("/conta");
+    redirect("/perfil");
   }
 
   redirect(

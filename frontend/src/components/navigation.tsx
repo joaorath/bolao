@@ -59,7 +59,7 @@ const navigationItems: NavigationItem[] = [
     adminOnly: true,
   },
   {
-    href: "/conta",
+    href: "/perfil",
     label: "Perfil",
     icon: "👤",
   },
@@ -282,7 +282,7 @@ export function Sidebar({
       </div>
 
       <Link
-        href="/conta"
+        href="/perfil"
         className="mt-5 flex items-center gap-3 rounded-xl p-2 transition hover:bg-slate-800"
       >
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-900 text-xs font-bold">
