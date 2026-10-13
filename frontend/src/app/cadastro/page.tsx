@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { signup } from "@/app/auth/actions";
+import { createClient } from "@/lib/supabase/server";
 
 type SignupPageProps = {
   searchParams: Promise<{
@@ -12,102 +13,320 @@ export default async function SignupPage({
   searchParams,
 }: SignupPageProps) {
   const params = await searchParams;
+  const supabase = await createClient();
+
+  const {
+    data: teams,
+    error: teamsError,
+  } = await supabase
+    .from("teams")
+    .select(
+      "id, name, abbreviation",
+    )
+    .eq("active", true)
+    .order("display_order", {
+      ascending: true,
+    });
+
+  if (teamsError) {
+    console.error(
+      "Erro ao carregar times:",
+      teamsError,
+    );
+  }
+
+  const maximumBirthDate =
+    new Date()
+      .toISOString()
+      .slice(0, 10);
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-md items-center">
-      <section className="w-full rounded-3xl border border-slate-800 bg-[#0e2131] p-7 shadow-2xl">
+    <div className="mx-auto flex min-h-[70vh] max-w-3xl items-center py-8">
+      <section className="w-full rounded-3xl border border-slate-800 bg-[#0e2131] p-6 shadow-2xl sm:p-8">
         <div className="text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-lime-400 text-xl font-extrabold text-slate-950">
             CL
           </div>
 
           <h1 className="mt-5 text-3xl font-extrabold">
-            Criar conta
+            Crie sua conta
           </h1>
 
-          <p className="mt-2 text-sm text-slate-400">
-            Crie seu usuário para participar dos bolões.
+          <p className="mx-auto mt-2 max-w-xl text-sm text-slate-400">
+            Entre para a comunidade, escolha
+            seu time do coração e participe
+            dos bolões.
           </p>
         </div>
 
         {params.error && (
-          <div className="mt-6 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-300">
+          <div
+            role="alert"
+            className="mt-6 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-300"
+          >
             {params.error}
+          </div>
+        )}
+
+        {teamsError && (
+          <div
+            role="alert"
+            className="mt-6 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-200"
+          >
+            Não foi possível carregar os
+            times neste momento. Atualize a
+            página e tente novamente.
           </div>
         )}
 
         <form
           action={signup}
-          className="mt-7 space-y-5"
+          className="mt-7 space-y-7"
         >
-          <label className="block">
-            <span className="mb-2 block text-sm font-bold text-slate-300">
-              Nome
-            </span>
+          <fieldset>
+            <legend className="text-lg font-extrabold">
+              Seus dados
+            </legend>
 
-            <input
-              name="name"
-              type="text"
-              autoComplete="name"
-              required
-              minLength={3}
-              placeholder="Seu nome"
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-lime-400"
-            />
-          </label>
+            <p className="mt-1 text-sm text-slate-400">
+              Essas informações ajudam a
+              personalizar sua experiência.
+            </p>
 
-          <label className="block">
-            <span className="mb-2 block text-sm font-bold text-slate-300">
-              E-mail
-            </span>
+            <div className="mt-5 grid gap-5 sm:grid-cols-2">
+              <label className="block sm:col-span-2">
+                <span className="mb-2 block text-sm font-bold text-slate-300">
+                  Nome completo
+                </span>
 
-            <input
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              placeholder="voce@email.com"
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-lime-400"
-            />
-          </label>
+                <input
+                  name="fullName"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  minLength={3}
+                  maxLength={120}
+                  placeholder="Seu nome e sobrenome"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-lime-400"
+                />
+              </label>
 
-          <label className="block">
-            <span className="mb-2 block text-sm font-bold text-slate-300">
-              Senha
-            </span>
+              <label className="block">
+                <span className="mb-2 block text-sm font-bold text-slate-300">
+                  Nome de usuário
+                </span>
 
-            <input
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={6}
-              placeholder="Mínimo de 6 caracteres"
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-lime-400"
-            />
-          </label>
+                <div className="flex rounded-xl border border-slate-700 bg-slate-950 transition focus-within:border-lime-400">
+                  <span className="flex items-center pl-4 text-slate-500">
+                    @
+                  </span>
 
-          <label className="block">
-            <span className="mb-2 block text-sm font-bold text-slate-300">
-              Confirmar senha
-            </span>
+                  <input
+                    name="username"
+                    type="text"
+                    autoComplete="username"
+                    required
+                    minLength={3}
+                    maxLength={24}
+                    pattern="[a-z0-9_]{3,24}"
+                    title="Use de 3 a 24 letras minúsculas, números ou _"
+                    placeholder="torcedor_4827"
+                    className="w-full bg-transparent px-2 py-3 outline-none"
+                  />
+                </div>
 
-            <input
-              name="passwordConfirmation"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={6}
-              placeholder="Digite novamente"
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-lime-400"
-            />
-          </label>
+                <span className="mt-2 block text-xs text-slate-500">
+                  Apenas letras minúsculas,
+                  números e _.
+                </span>
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-bold text-slate-300">
+                  Data de nascimento
+                </span>
+
+                <input
+                  name="birthDate"
+                  type="date"
+                  autoComplete="bday"
+                  required
+                  min="1900-01-01"
+                  max={maximumBirthDate}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-lime-400"
+                />
+              </label>
+
+              <label className="block sm:col-span-2">
+                <span className="mb-2 block text-sm font-bold text-slate-300">
+                  Time do coração no Parazão
+                </span>
+
+                <select
+                  name="favoriteTeamId"
+                  required
+                  defaultValue=""
+                  disabled={
+                    Boolean(teamsError) ||
+                    !teams?.length
+                  }
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-lime-400 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="" disabled>
+                    Selecione seu time
+                  </option>
+
+                  {(teams ?? []).map(
+                    (team) => (
+                      <option
+                        key={team.id}
+                        value={team.id}
+                      >
+                        {team.name} (
+                        {team.abbreviation})
+                      </option>
+                    ),
+                  )}
+                </select>
+              </label>
+            </div>
+          </fieldset>
+
+          <div className="border-t border-slate-800" />
+
+          <fieldset>
+            <legend className="text-lg font-extrabold">
+              Redes do Varanda
+            </legend>
+
+            <p className="mt-1 text-sm text-slate-400">
+              Essa resposta é opcional e não
+              impede sua participação.
+            </p>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <SocialOption
+                value="BOTH"
+                label="Sigo nas duas"
+                description="Instagram e YouTube"
+              />
+
+              <SocialOption
+                value="INSTAGRAM"
+                label="Sigo no Instagram"
+                description="Ainda não sigo no YouTube"
+              />
+
+              <SocialOption
+                value="YOUTUBE"
+                label="Sigo no YouTube"
+                description="Ainda não sigo no Instagram"
+              />
+
+              <SocialOption
+                value="NONE"
+                label="Ainda não sigo"
+                description="Quero conhecer as redes"
+              />
+
+              <SocialOption
+                value="NOT_ANSWERED"
+                label="Prefiro não responder"
+                description="Posso decidir depois"
+                defaultChecked
+              />
+            </div>
+          </fieldset>
+
+          <div className="border-t border-slate-800" />
+
+          <fieldset>
+            <legend className="text-lg font-extrabold">
+              Acesso à conta
+            </legend>
+
+            <div className="mt-5 grid gap-5 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-2 block text-sm font-bold text-slate-300">
+                  E-mail
+                </span>
+
+                <input
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  placeholder="voce@email.com"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-lime-400"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-bold text-slate-300">
+                  Confirmar e-mail
+                </span>
+
+                <input
+                  name="emailConfirmation"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  placeholder="Digite novamente"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-lime-400"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-bold text-slate-300">
+                  Senha
+                </span>
+
+                <input
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  placeholder="Mínimo de 8 caracteres"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-lime-400"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-bold text-slate-300">
+                  Confirmar senha
+                </span>
+
+                <input
+                  name="passwordConfirmation"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  placeholder="Digite novamente"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-lime-400"
+                />
+              </label>
+            </div>
+          </fieldset>
+
+          <div className="rounded-xl border border-slate-700 bg-slate-950/50 p-4 text-xs leading-5 text-slate-400">
+            Após criar a conta, você poderá
+            receber um e-mail de confirmação.
+            Seus dados serão utilizados para
+            identificação e participação nos
+            bolões.
+          </div>
 
           <button
             type="submit"
-            className="w-full rounded-xl bg-lime-400 px-5 py-3 font-extrabold text-slate-950 transition hover:bg-lime-300"
+            disabled={
+              Boolean(teamsError) ||
+              !teams?.length
+            }
+            className="w-full rounded-xl bg-lime-400 px-5 py-3 font-extrabold text-slate-950 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
           >
-            Criar conta
+            Criar minha conta
           </button>
         </form>
 
@@ -115,12 +334,46 @@ export default async function SignupPage({
           Já possui uma conta?{" "}
           <Link
             href="/login"
-            className="font-bold text-lime-400"
+            className="font-bold text-lime-400 hover:text-lime-300"
           >
             Entrar
           </Link>
         </p>
       </section>
     </div>
+  );
+}
+
+function SocialOption({
+  value,
+  label,
+  description,
+  defaultChecked = false,
+}: {
+  value: string;
+  label: string;
+  description: string;
+  defaultChecked?: boolean;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-700 bg-slate-950/50 p-4 transition hover:border-slate-500 has-[:checked]:border-lime-400 has-[:checked]:bg-lime-400/5">
+      <input
+        name="socialFollowingStatus"
+        type="radio"
+        value={value}
+        defaultChecked={defaultChecked}
+        className="mt-1 h-4 w-4 accent-lime-400"
+      />
+
+      <span>
+        <strong className="block text-sm text-white">
+          {label}
+        </strong>
+
+        <span className="mt-1 block text-xs text-slate-500">
+          {description}
+        </span>
+      </span>
+    </label>
   );
 }

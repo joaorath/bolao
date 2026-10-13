@@ -27,6 +27,36 @@ function redirectWithError(
   );
 }
 
+function isValidBirthDate(value: string) {
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(value)
+  ) {
+    return false;
+  }
+
+  const parsedDate = new Date(
+    `${value}T00:00:00.000Z`,
+  );
+
+  if (
+    Number.isNaN(parsedDate.getTime()) ||
+    parsedDate
+      .toISOString()
+      .slice(0, 10) !== value
+  ) {
+    return false;
+  }
+
+  const today = new Date()
+    .toISOString()
+    .slice(0, 10);
+
+  return (
+    value >= "1900-01-01" &&
+    value <= today
+  );
+}
+
 export async function login(
   formData: FormData,
 ) {
@@ -59,27 +89,60 @@ export async function login(
     });
 
   if (error) {
+    console.error("Erro no login:", {
+      message: error.message,
+      status: error.status,
+      code: error.code,
+    });
+
     redirectWithError(
       "/login",
-      "E-mail ou senha incorretos.",
+      error.status === 400
+        ? "E-mail ou senha incorretos."
+        : "Não foi possível entrar. Tente novamente.",
     );
   }
 
   revalidatePath("/", "layout");
-  redirect("/conta");
+  redirect("/perfil");
 }
 
 export async function signup(
   formData: FormData,
 ) {
-  const name = getText(
+  const fullName = getText(
     formData,
-    "name",
+    "fullName",
+  ).replace(/\s+/g, " ");
+
+  const username = getText(
+    formData,
+    "username",
+  ).toLowerCase();
+
+  const birthDate = getText(
+    formData,
+    "birthDate",
   );
+
+  const favoriteTeamId = getText(
+    formData,
+    "favoriteTeamId",
+  );
+
+  const socialFollowingStatus = getText(
+    formData,
+    "socialFollowingStatus",
+  ).toUpperCase();
 
   const email = getText(
     formData,
     "email",
+  ).toLowerCase();
+
+  const emailConfirmation = getText(
+    formData,
+    "emailConfirmation",
   ).toLowerCase();
 
   const passwordValue =
@@ -99,28 +162,61 @@ export async function signup(
       : "";
 
   if (
-    !name ||
+    !fullName ||
+    !username ||
+    !birthDate ||
+    !favoriteTeamId ||
     !email ||
+    !emailConfirmation ||
     !password ||
     !passwordConfirmation
   ) {
     redirectWithError(
       "/cadastro",
-      "Preencha todos os campos.",
+      "Preencha todos os campos obrigatórios.",
     );
   }
 
-  if (name.length < 3) {
+  if (
+    fullName.length < 3 ||
+    fullName.length > 120 ||
+    fullName.split(" ").length < 2
+  ) {
     redirectWithError(
       "/cadastro",
-      "O nome precisa ter pelo menos 3 caracteres.",
+      "Informe seu nome completo.",
     );
   }
 
-  if (password.length < 6) {
+  if (
+    !/^[a-z0-9_]{3,24}$/.test(
+      username,
+    )
+  ) {
     redirectWithError(
       "/cadastro",
-      "A senha precisa ter pelo menos 6 caracteres.",
+      "O usuário deve ter entre 3 e 24 caracteres e usar apenas letras minúsculas, números ou _.",
+    );
+  }
+
+  if (!isValidBirthDate(birthDate)) {
+    redirectWithError(
+      "/cadastro",
+      "Informe uma data de nascimento válida.",
+    );
+  }
+
+  if (email !== emailConfirmation) {
+    redirectWithError(
+      "/cadastro",
+      "Os endereços de e-mail não são iguais.",
+    );
+  }
+
+  if (password.length < 8) {
+    redirectWithError(
+      "/cadastro",
+      "A senha precisa ter pelo menos 8 caracteres.",
     );
   }
 
@@ -131,7 +227,79 @@ export async function signup(
     );
   }
 
+  const allowedSocialStatuses = [
+    "BOTH",
+    "INSTAGRAM",
+    "YOUTUBE",
+    "NONE",
+    "NOT_ANSWERED",
+  ];
+
+  if (
+    !allowedSocialStatuses.includes(
+      socialFollowingStatus,
+    )
+  ) {
+    redirectWithError(
+      "/cadastro",
+      "Selecione uma opção válida sobre as redes sociais.",
+    );
+  }
+
   const supabase = await createClient();
+
+  const [
+    usernameResult,
+    teamResult,
+  ] = await Promise.all([
+    supabase.rpc(
+      "is_username_available",
+      {
+        username_value: username,
+      },
+    ),
+
+    supabase
+      .from("teams")
+      .select("id")
+      .eq("id", favoriteTeamId)
+      .eq("active", true)
+      .maybeSingle(),
+  ]);
+
+  if (usernameResult.error) {
+    console.error(
+      "Erro ao verificar usuário:",
+      usernameResult.error,
+    );
+
+    redirectWithError(
+      "/cadastro",
+      "Não foi possível verificar o nome de usuário.",
+    );
+  }
+
+  if (!usernameResult.data) {
+    redirectWithError(
+      "/cadastro",
+      "Esse nome de usuário já está sendo utilizado.",
+    );
+  }
+
+  if (
+    teamResult.error ||
+    !teamResult.data
+  ) {
+    console.error(
+      "Erro ao verificar time:",
+      teamResult.error,
+    );
+
+    redirectWithError(
+      "/cadastro",
+      "Selecione um time válido.",
+    );
+  }
 
   const { data, error } =
     await supabase.auth.signUp({
@@ -139,21 +307,40 @@ export async function signup(
       password,
       options: {
         data: {
-          full_name: name,
+          full_name: fullName,
+          username,
+          birth_date: birthDate,
+          favorite_team_id:
+            favoriteTeamId,
+          social_following_status:
+            socialFollowingStatus,
         },
       },
     });
 
   if (error) {
+    console.error(
+      "Erro ao criar conta:",
+      {
+        message: error.message,
+        status: error.status,
+        code: error.code,
+      },
+    );
+
     redirectWithError(
       "/cadastro",
-      "Não foi possível criar a conta. Verifique os dados informados.",
+      error.message
+        .toLowerCase()
+        .includes("already registered")
+        ? "Já existe uma conta com esse e-mail."
+        : "Não foi possível criar a conta. Verifique os dados e tente novamente.",
     );
   }
 
   if (data.session) {
     revalidatePath("/", "layout");
-    redirect("/conta");
+    redirect("/perfil");
   }
 
   redirect(

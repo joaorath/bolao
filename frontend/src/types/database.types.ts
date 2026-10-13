@@ -157,14 +157,34 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "created_at": string,"full_name": string,"id": string,"is_admin": boolean,"updated_at": string
+                    "birth_date": string | null,"created_at": string,"favorite_team_id": string | null,"full_name": string,"id": string,"is_admin": boolean,"social_following_status": string,"updated_at": string,"username": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"full_name"?: string,"id": string,"is_admin"?: boolean,"updated_at"?: string
+                    "birth_date"?: string | null,"created_at"?: string,"favorite_team_id"?: string | null,"full_name"?: string,"id": string,"is_admin"?: boolean,"social_following_status"?: string,"updated_at"?: string,"username"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"full_name"?: string,"id"?: string,"is_admin"?: boolean,"updated_at"?: string
+                    "birth_date"?: string | null,"created_at"?: string,"favorite_team_id"?: string | null,"full_name"?: string,"id"?: string,"is_admin"?: boolean,"social_following_status"?: string,"updated_at"?: string,"username"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "profiles_favorite_team_id_fkey"
+      columns: ["favorite_team_id"]
+isOneToOne: false
+      referencedRelation: "teams"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"teams": {
+                  Row: {
+                    "abbreviation": string,"active": boolean,"competition": string,"created_at": string,"display_order": number,"id": string,"name": string,"season": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "abbreviation": string,"active"?: boolean,"competition": string,"created_at"?: string,"display_order"?: number,"id": string,"name": string,"season": number
+                  }
+                  Update: {
+                    "abbreviation"?: string,"active"?: boolean,"competition"?: string,"created_at"?: string,"display_order"?: number,"id"?: string,"name"?: string,"season"?: number
                   }
                   Relationships: [
                     
@@ -204,6 +224,9 @@ isOneToOne: false
                            },
 "is_pool_owner":
 { Args: { "target_pool_id": string }; Returns: boolean
+                           },
+"is_username_available":
+{ Args: { "username_value": string }; Returns: boolean
                            },
 "join_pool_by_code":
 { Args: { "provided_code": string }; Returns: string
