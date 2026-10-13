@@ -130,7 +130,7 @@ export default async function SignupPage({
                     maxLength={24}
                     pattern="[a-z0-9_]{3,24}"
                     title="Use de 3 a 24 letras minúsculas, números ou _"
-                    placeholder="joaorath"
+                    placeholder="torcedor_4827"
                     className="w-full bg-transparent px-2 py-3 outline-none"
                   />
                 </div>
