@@ -27,6 +27,7 @@ export type Database = {
                   Row: {
                     "action": string,"actor_user_id": string | null,"created_at": string,"entity_id": string,"entity_type": string,"id": number,"new_data": Json | null,"old_data": Json | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "action": string,"actor_user_id"?: string | null,"created_at"?: string,"entity_id": string,"entity_type"?: string,"id"?: never,"new_data"?: Json | null,"old_data"?: Json | null
                   }
@@ -44,13 +45,14 @@ isOneToOne: false
                   ]
                 },"matches": {
                   Row: {
-                    "away_team_abbreviation": string,"away_team_color": string,"away_team_name": string,"competition": string,"created_at": string,"home_team_abbreviation": string,"home_team_color": string,"home_team_name": string,"id": string,"official_away_score": number | null,"official_home_score": number | null,"round": number,"stadium": string | null,"starts_at": string,"status": string,"updated_at": string
+                    "away_team_abbreviation": string,"away_team_color": string,"away_team_logo_url": string | null,"away_team_name": string,"competition": string,"created_at": string,"elapsed_minutes": number | null,"home_team_abbreviation": string,"home_team_color": string,"home_team_logo_url": string | null,"home_team_name": string,"id": string,"last_synced_at": string | null,"official_away_score": number | null,"official_home_score": number | null,"provider": string,"provider_match_id": string | null,"round": number,"stadium": string | null,"starts_at": string,"status": string,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
-                    "away_team_abbreviation": string,"away_team_color": string,"away_team_name": string,"competition": string,"created_at"?: string,"home_team_abbreviation": string,"home_team_color": string,"home_team_name": string,"id": string,"official_away_score"?: number | null,"official_home_score"?: number | null,"round": number,"stadium"?: string | null,"starts_at": string,"status"?: string,"updated_at"?: string
+                    "away_team_abbreviation": string,"away_team_color": string,"away_team_logo_url"?: string | null,"away_team_name": string,"competition": string,"created_at"?: string,"elapsed_minutes"?: number | null,"home_team_abbreviation": string,"home_team_color": string,"home_team_logo_url"?: string | null,"home_team_name": string,"id": string,"last_synced_at"?: string | null,"official_away_score"?: number | null,"official_home_score"?: number | null,"provider"?: string,"provider_match_id"?: string | null,"round": number,"stadium"?: string | null,"starts_at": string,"status"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "away_team_abbreviation"?: string,"away_team_color"?: string,"away_team_name"?: string,"competition"?: string,"created_at"?: string,"home_team_abbreviation"?: string,"home_team_color"?: string,"home_team_name"?: string,"id"?: string,"official_away_score"?: number | null,"official_home_score"?: number | null,"round"?: number,"stadium"?: string | null,"starts_at"?: string,"status"?: string,"updated_at"?: string
+                    "away_team_abbreviation"?: string,"away_team_color"?: string,"away_team_logo_url"?: string | null,"away_team_name"?: string,"competition"?: string,"created_at"?: string,"elapsed_minutes"?: number | null,"home_team_abbreviation"?: string,"home_team_color"?: string,"home_team_logo_url"?: string | null,"home_team_name"?: string,"id"?: string,"last_synced_at"?: string | null,"official_away_score"?: number | null,"official_home_score"?: number | null,"provider"?: string,"provider_match_id"?: string | null,"round"?: number,"stadium"?: string | null,"starts_at"?: string,"status"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -59,6 +61,7 @@ isOneToOne: false
                   Row: {
                     "match_id": string,"official_away_score": number | null,"official_home_score": number | null,"pool_id": string,"status": string,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "match_id": string,"official_away_score"?: number | null,"official_home_score"?: number | null,"pool_id": string,"status"?: string,"updated_at"?: string
                   }
@@ -84,6 +87,7 @@ isOneToOne: false
                   Row: {
                     "joined_at": string,"pool_id": string,"role": string,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "joined_at"?: string,"pool_id": string,"role"?: string,"user_id": string
                   }
@@ -109,6 +113,7 @@ isOneToOne: false
                   Row: {
                     "competition": string,"created_at": string,"description": string,"id": string,"invite_code": string,"is_global": boolean,"name": string,"owner_id": string | null,"updated_at": string,"visibility": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "competition": string,"created_at"?: string,"description"?: string,"id"?: string,"invite_code"?: string,"is_global"?: boolean,"name": string,"owner_id"?: string | null,"updated_at"?: string,"visibility"?: string
                   }
@@ -128,6 +133,7 @@ isOneToOne: false
                   Row: {
                     "away_score": number,"home_score": number,"match_id": string,"pool_id": string,"saved_at": string,"updated_at": string,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "away_score": number,"home_score": number,"match_id": string,"pool_id": string,"saved_at"?: string,"updated_at"?: string,"user_id": string
                   }
@@ -153,6 +159,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"full_name": string,"id": string,"is_admin": boolean,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"full_name"?: string,"id": string,"is_admin"?: boolean,"updated_at"?: string
                   }
@@ -203,6 +210,11 @@ isOneToOne: false
                            },
 "save_official_match_result":
 { Args: { "away_score_value": number,"home_score_value": number,"target_match_id": string }; Returns: undefined
+                           },
+"sync_api_football_matches":
+{ Args: { "matches_payload": Json }; Returns: {
+              "inserted_count": number,"processed_count": number,"synchronized_pool_count": number,"updated_count": number
+            }[]
                            },
 "update_official_match_details":
 { Args: { "away_team_abbreviation_value": string,"away_team_color_value": string,"away_team_name_value": string,"competition_value": string,"home_team_abbreviation_value": string,"home_team_color_value": string,"home_team_name_value": string,"round_value": number,"stadium_value": string,"starts_at_value": string,"target_match_id": string }; Returns: undefined
@@ -336,4 +348,3 @@ export const Constants = {
           }
         }
 } as const
-
