@@ -20,17 +20,25 @@ type PoolsPageProps = {
 
 type DatabasePool = {
   id: string;
-  owner_id: string;
+  owner_id: string | null;
   name: string;
   description: string | null;
   competition: string;
   visibility: string;
   invite_code: string;
+  is_global: boolean;
   pool_members:
     | Array<{
         count: number;
       }>
     | null;
+};
+
+type DatabaseRankingEntry = {
+  user_id: string;
+  ranking_position: number | string;
+  points: number | string;
+  is_current_user: boolean;
 };
 
 export default async function PoolsPage({
@@ -61,38 +69,111 @@ export default async function PoolsPage({
       competition,
       visibility,
       invite_code,
+      is_global,
       pool_members(count)
     `)
     .order("created_at", {
       ascending: false,
     });
 
-  const databasePools =
-    (data ?? []) as DatabasePool[];
+  const databasePools = (
+    (data ?? []) as DatabasePool[]
+  ).sort((firstPool, secondPool) => {
+    if (
+      firstPool.is_global !==
+      secondPool.is_global
+    ) {
+      return firstPool.is_global ? -1 : 1;
+    }
+
+    return firstPool.name.localeCompare(
+      secondPool.name,
+      "pt-BR",
+    );
+  });
 
   const pools: PoolSummary[] =
-    databasePools.map((pool) => {
+  await Promise.all(
+    databasePools.map(async (pool) => {
       const participantCount =
         pool.pool_members?.[0]?.count ?? 0;
+
+      const {
+        data: rankingData,
+        error: rankingError,
+      } = await supabase.rpc(
+        "get_pool_ranking_summary",
+        {
+          target_pool_id: pool.id,
+          ranking_limit: 100,
+        },
+      );
+
+      if (rankingError) {
+        console.error(
+          `Erro ao carregar ranking do bolão ${pool.id}:`,
+          rankingError,
+        );
+      }
+
+      const ranking =
+        (rankingData ??
+          []) as DatabaseRankingEntry[];
+
+      const currentUserEntry =
+        ranking.find(
+          (entry) =>
+            entry.is_current_user,
+        );
+
+      const leaderEntry =
+        ranking.find(
+          (entry) =>
+            Number(
+              entry.ranking_position,
+            ) === 1,
+        );
 
       return {
         id: pool.id,
         name: pool.name,
         description:
           pool.description ?? "",
-        competition: pool.competition,
+        competition:
+          pool.competition,
         participantCount,
-        position: 1,
-        points: 0,
-        leaderPoints: 0,
-        inviteCode: pool.invite_code,
+        position: currentUserEntry
+          ? Number(
+              currentUserEntry
+                .ranking_position,
+            )
+          : 0,
+        points: currentUserEntry
+          ? Number(
+              currentUserEntry.points,
+            )
+          : 0,
+        leaderPoints: leaderEntry
+          ? Number(leaderEntry.points)
+          : 0,
+        inviteCode:
+          pool.invite_code,
         visibility:
           pool.visibility as PoolVisibility,
-        matchSelectionMode: "ALL_COMPETITION",
+        matchSelectionMode:
+          "ALL_COMPETITION",
         isOwner:
+          !pool.is_global &&
           pool.owner_id === user.id,
+        isGlobal:
+          pool.is_global,
       };
-    });
+    }),
+  );
+
+  const personalPools = pools.filter(
+    (pool) => !pool.isGlobal,
+  );
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -101,12 +182,13 @@ export default async function PoolsPage({
           SUAS DISPUTAS
         </span>
 
-        <h1 className="mt-3 text-4xl font-extrabold">
+        <h1 className="mt-3 text-3xl font-extrabold sm:text-4xl">
           Bolões
         </h1>
 
         <p className="mt-2 text-slate-400">
-          Crie um bolão ou entre usando um código.
+          Participe do Ranking Geral, crie um
+          bolão ou entre usando um código.
         </p>
       </header>
 
@@ -160,24 +242,39 @@ export default async function PoolsPage({
       </section>
 
       <section className="mt-10">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-extrabold">
-            Em andamento
-          </h2>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-extrabold">
+              Suas disputas
+            </h2>
 
-          <span className="text-sm text-slate-500">
-            {pools.length} bolões
+            <p className="mt-1 text-sm text-slate-500">
+              Você participa automaticamente do
+              Ranking Geral.
+            </p>
+          </div>
+
+          <span className="whitespace-nowrap text-sm text-slate-500">
+            {personalPools.length}{" "}
+            {personalPools.length === 1
+              ? "bolão particular"
+              : "bolões particulares"}
           </span>
         </div>
 
         {pools.length === 0 ? (
           <div className="mt-5 rounded-2xl border border-dashed border-slate-700 p-8 text-center">
-            <h3 className="font-extrabold">
-              Você ainda não participa de nenhum bolão
+            <span className="text-4xl">
+              ⚽
+            </span>
+
+            <h3 className="mt-4 font-extrabold">
+              Nenhuma disputa disponível
             </h3>
 
             <p className="mt-2 text-sm text-slate-400">
-              Crie um novo ou use um código de convite.
+              Não foi possível encontrar bolões
+              associados à sua conta.
             </p>
           </div>
         ) : (

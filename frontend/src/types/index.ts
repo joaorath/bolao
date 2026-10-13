@@ -21,6 +21,7 @@ export type Team = {
   abbreviation: string;
   primaryColor: string;
   secondaryColor: string;
+  logoUrl?: string;
 };
 
 export type Match = {
@@ -59,6 +60,7 @@ export type PoolSummary = {
   visibility?: PoolVisibility;
   matchSelectionMode: MatchSelectionMode;
   isOwner?: boolean;
+  isGlobal?: boolean;
 };
 
 export type RankingEntry = {

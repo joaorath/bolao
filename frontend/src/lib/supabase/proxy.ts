@@ -1,4 +1,6 @@
-import { createServerClient } from "@supabase/ssr";
+import {
+  createServerClient,
+} from "@supabase/ssr";
 
 import {
   NextResponse,
@@ -9,9 +11,11 @@ function copySessionToResponse(
   source: NextResponse,
   destination: NextResponse,
 ) {
-  source.cookies.getAll().forEach((cookie) => {
-    destination.cookies.set(cookie);
-  });
+  source.cookies
+    .getAll()
+    .forEach((cookie) => {
+      destination.cookies.set(cookie);
+    });
 
   const cacheHeaders = [
     "cache-control",
@@ -20,7 +24,8 @@ function copySessionToResponse(
   ];
 
   cacheHeaders.forEach((header) => {
-    const value = source.headers.get(header);
+    const value =
+      source.headers.get(header);
 
     if (value) {
       destination.headers.set(
@@ -36,60 +41,84 @@ function copySessionToResponse(
 export async function updateSession(
   request: NextRequest,
 ) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  });
+  let supabaseResponse =
+    NextResponse.next({
+      request,
+    });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env
-      .NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
+  const supabase =
+    createServerClient(
+      process.env
+        .NEXT_PUBLIC_SUPABASE_URL!,
+      process.env
+        .NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      {
+        
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
 
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(
-            ({ name, value }) => {
-              request.cookies.set(
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(
+              ({
                 name,
                 value,
-              );
-            },
-          );
+              }) => {
+                request.cookies.set(
+                  name,
+                  value,
+                );
+              },
+            );
 
-          supabaseResponse = NextResponse.next({
-            request,
-          });
+            supabaseResponse =
+              NextResponse.next({
+                request,
+              });
 
-          cookiesToSet.forEach(
-            ({
-              name,
-              value,
-              options,
-            }) => {
-              supabaseResponse.cookies.set(
+            cookiesToSet.forEach(
+              ({
                 name,
                 value,
                 options,
-              );
-            },
-          );
+              }) => {
+                supabaseResponse.cookies.set(
+                  name,
+                  value,
+                  options,
+                );
+              },
+            );
+          },
         },
       },
-    },
-  );
+    );
 
-  const { data } =
-    await supabase.auth.getClaims();
+  let isAuthenticated = false;
 
-  const isAuthenticated = Boolean(
-    data?.claims?.sub,
-  );
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  const pathname = request.nextUrl.pathname;
+    isAuthenticated =
+      Boolean(user);
+  } catch (error) {
+    /*
+     * Uma falha temporária de autenticação não
+     * deve impedir o usuário de abrir o login.
+     */
+    console.error(
+      "Erro ao validar sessão no proxy:",
+      error,
+    );
+
+    isAuthenticated = false;
+  }
+
+  const pathname =
+    request.nextUrl.pathname;
 
   const isPublicAuthRoute =
     pathname === "/" ||
@@ -101,30 +130,38 @@ export async function updateSession(
     !isAuthenticated &&
     !isPublicAuthRoute
   ) {
-    const loginUrl = request.nextUrl.clone();
+    const loginUrl =
+      request.nextUrl.clone();
 
     loginUrl.pathname = "/login";
     loginUrl.search = "";
 
     return copySessionToResponse(
       supabaseResponse,
-      NextResponse.redirect(loginUrl),
+      NextResponse.redirect(
+        loginUrl,
+      ),
     );
   }
 
   if (
     isAuthenticated &&
-    (pathname === "/login" ||
-      pathname === "/cadastro")
+    (
+      pathname === "/login" ||
+      pathname === "/cadastro"
+    )
   ) {
-    const homeUrl = request.nextUrl.clone();
+    const homeUrl =
+      request.nextUrl.clone();
 
     homeUrl.pathname = "/";
     homeUrl.search = "";
 
     return copySessionToResponse(
       supabaseResponse,
-      NextResponse.redirect(homeUrl),
+      NextResponse.redirect(
+        homeUrl,
+      ),
     );
   }
 
