@@ -157,14 +157,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "birth_date": string | null,"created_at": string,"favorite_team_id": string | null,"full_name": string,"id": string,"is_admin": boolean,"social_following_status": string,"updated_at": string,"username": string | null
+                    "birth_date": string | null,"created_at": string,"favorite_team_id": string | null,"followed_social_networks": (string)[],"full_name": string,"id": string,"is_admin": boolean,"social_following_answered": boolean,"social_following_status": string,"updated_at": string,"username": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "birth_date"?: string | null,"created_at"?: string,"favorite_team_id"?: string | null,"full_name"?: string,"id": string,"is_admin"?: boolean,"social_following_status"?: string,"updated_at"?: string,"username"?: string | null
+                    "birth_date"?: string | null,"created_at"?: string,"favorite_team_id"?: string | null,"followed_social_networks"?: (string)[],"full_name"?: string,"id": string,"is_admin"?: boolean,"social_following_answered"?: boolean,"social_following_status"?: string,"updated_at"?: string,"username"?: string | null
                   }
                   Update: {
-                    "birth_date"?: string | null,"created_at"?: string,"favorite_team_id"?: string | null,"full_name"?: string,"id"?: string,"is_admin"?: boolean,"social_following_status"?: string,"updated_at"?: string,"username"?: string | null
+                    "birth_date"?: string | null,"created_at"?: string,"favorite_team_id"?: string | null,"followed_social_networks"?: (string)[],"full_name"?: string,"id"?: string,"is_admin"?: boolean,"social_following_answered"?: boolean,"social_following_status"?: string,"updated_at"?: string,"username"?: string | null
                   }
                   Relationships: [
                     {

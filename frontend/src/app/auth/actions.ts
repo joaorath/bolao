@@ -130,10 +130,57 @@ export async function signup(
     "favoriteTeamId",
   );
 
-  const socialFollowingStatus = getText(
-    formData,
-    "socialFollowingStatus",
-  ).toUpperCase();
+  const allowedSocialNetworks: string[] = [
+    "INSTAGRAM",
+    "YOUTUBE",
+    "TIKTOK",
+    "FACEBOOK",
+  ];
+
+  const submittedSocialNetworks =
+    formData
+      .getAll(
+        "followedSocialNetworks",
+      )
+      .filter(
+        (
+          value,
+        ): value is string =>
+          typeof value === "string",
+      )
+      .map((value) =>
+        value.trim().toUpperCase(),
+      );
+
+  const hasInvalidSocialNetwork =
+    submittedSocialNetworks.some(
+      (network) =>
+        !allowedSocialNetworks.includes(
+          network,
+        ),
+    );
+
+  if (hasInvalidSocialNetwork) {
+    redirectWithError(
+      "/cadastro",
+      "Foi selecionada uma rede social inválida.",
+    );
+  }
+
+  const socialFollowingAnswered =
+    getText(
+      formData,
+      "socialFollowingAnswered",
+    ) === "true";
+
+  const followedSocialNetworks =
+    socialFollowingAnswered
+      ? Array.from(
+          new Set(
+            submittedSocialNetworks,
+          ),
+        )
+      : [];
 
   const email = getText(
     formData,
@@ -227,24 +274,7 @@ export async function signup(
     );
   }
 
-  const allowedSocialStatuses = [
-    "BOTH",
-    "INSTAGRAM",
-    "YOUTUBE",
-    "NONE",
-    "NOT_ANSWERED",
-  ];
 
-  if (
-    !allowedSocialStatuses.includes(
-      socialFollowingStatus,
-    )
-  ) {
-    redirectWithError(
-      "/cadastro",
-      "Selecione uma opção válida sobre as redes sociais.",
-    );
-  }
 
   const supabase = await createClient();
 
@@ -312,8 +342,10 @@ export async function signup(
           birth_date: birthDate,
           favorite_team_id:
             favoriteTeamId,
-          social_following_status:
-            socialFollowingStatus,
+          followed_social_networks:
+            followedSocialNetworks,
+          social_following_answered:
+            socialFollowingAnswered,
         },
       },
     });
