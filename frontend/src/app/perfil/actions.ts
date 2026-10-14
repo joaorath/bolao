@@ -79,10 +79,77 @@ export async function updateProfile(
     "favoriteTeamId",
   );
 
-  const socialFollowingStatus = getText(
-    formData,
-    "socialFollowingStatus",
-  ).toUpperCase();
+  const allowedSocialNetworks: string[] = [
+    "INSTAGRAM",
+    "YOUTUBE",
+    "TIKTOK",
+    "FACEBOOK",
+  ];
+
+  const submittedSocialNetworks =
+    formData
+      .getAll(
+        "followedSocialNetworks",
+      )
+      .filter(
+        (
+          value,
+        ): value is string =>
+          typeof value === "string",
+      )
+      .map((value) =>
+        value.trim().toUpperCase(),
+      );
+
+  const hasInvalidSocialNetwork =
+    submittedSocialNetworks.some(
+      (network) =>
+        !allowedSocialNetworks.includes(
+          network,
+        ),
+    );
+
+  if (hasInvalidSocialNetwork) {
+    redirectWithError(
+      "Foi selecionada uma rede social inválida.",
+    );
+  }
+
+  const socialFollowingAnswered =
+    getText(
+      formData,
+      "socialFollowingAnswered",
+    ) === "true";
+
+  const followedSocialNetworks =
+    socialFollowingAnswered
+      ? Array.from(
+          new Set(
+            submittedSocialNetworks,
+          ),
+        )
+      : [];
+
+  const followsInstagram =
+    followedSocialNetworks.includes(
+      "INSTAGRAM",
+    );
+
+  const followsYouTube =
+    followedSocialNetworks.includes(
+      "YOUTUBE",
+    );
+
+  const socialFollowingStatus =
+    !socialFollowingAnswered
+      ? "NOT_ANSWERED"
+      : followsInstagram && followsYouTube
+        ? "BOTH"
+        : followsInstagram
+          ? "INSTAGRAM"
+          : followsYouTube
+            ? "YOUTUBE"
+            : "NONE";
 
   if (
     !fullName ||
@@ -118,24 +185,6 @@ export async function updateProfile(
   if (!isValidBirthDate(birthDate)) {
     redirectWithError(
       "Informe uma data de nascimento válida.",
-    );
-  }
-
-  const allowedSocialStatuses = [
-    "BOTH",
-    "INSTAGRAM",
-    "YOUTUBE",
-    "NONE",
-    "NOT_ANSWERED",
-  ];
-
-  if (
-    !allowedSocialStatuses.includes(
-      socialFollowingStatus,
-    )
-  ) {
-    redirectWithError(
-      "Selecione uma opção válida sobre as redes sociais.",
     );
   }
 
@@ -210,6 +259,10 @@ export async function updateProfile(
           favoriteTeamId,
         social_following_status:
           socialFollowingStatus,
+        followed_social_networks:
+          followedSocialNetworks,
+        social_following_answered:
+          socialFollowingAnswered,
         updated_at:
           new Date().toISOString(),
       })
@@ -236,6 +289,10 @@ export async function updateProfile(
           favoriteTeamId,
         social_following_status:
           socialFollowingStatus,
+        followed_social_networks:
+          followedSocialNetworks,
+        social_following_answered:
+          socialFollowingAnswered,
       },
     });
 

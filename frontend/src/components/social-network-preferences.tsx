@@ -42,16 +42,33 @@ const socialNetworks: Array<{
   },
 ];
 
-export function SocialNetworkPreferences() {
+type SocialNetworkPreferencesProps = {
+  initialNetworks?: string[];
+  initialAnswered?: boolean;
+};
+
+export function SocialNetworkPreferences({
+  initialNetworks = [],
+  initialAnswered = false,
+}: SocialNetworkPreferencesProps) {
+  const validInitialNetworks =
+    socialNetworks
+      .map((network) => network.value)
+      .filter((network) =>
+        initialNetworks.includes(network),
+      );
+
   const [
     selectedNetworks,
     setSelectedNetworks,
-  ] = useState<SocialNetwork[]>([]);
+  ] = useState<SocialNetwork[]>(
+    validInitialNetworks,
+  );
 
   const [
     prefersNotToAnswer,
     setPrefersNotToAnswer,
-  ] = useState(true);
+  ] = useState(!initialAnswered);
 
   function toggleNetwork(
     network: SocialNetwork,
