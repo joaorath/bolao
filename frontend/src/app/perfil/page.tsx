@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { updateProfile } from "@/app/perfil/actions";
 import { createClient } from "@/lib/supabase/server";
+import { SocialNetworkPreferences } from "@/components/social-network-preferences";
 
 export const metadata: Metadata = {
   title: "Perfil",
@@ -43,6 +44,8 @@ export default async function ProfilePage({
         birth_date,
         favorite_team_id,
         social_following_status,
+        followed_social_networks,
+        social_following_answered,
         created_at
       `)
       .eq("id", user.id)
@@ -125,16 +128,31 @@ export default async function ProfilePage({
         )
       : "Não informada";
 
-  const socialStatusLabels: Record<
+  const socialNetworkLabels: Record<
     string,
     string
   > = {
-    BOTH: "Segue no Instagram e YouTube",
-    INSTAGRAM: "Segue no Instagram",
-    YOUTUBE: "Segue no YouTube",
-    NONE: "Ainda não segue",
-    NOT_ANSWERED: "Preferiu não responder",
+    INSTAGRAM: "Instagram",
+    YOUTUBE: "YouTube",
+    TIKTOK: "TikTok",
+    FACEBOOK: "Facebook",
   };
+
+  const followedSocialNetworks =
+    profile.followed_social_networks ?? [];
+
+  const socialNetworksSummary =
+    !profile.social_following_answered
+      ? "Preferiu não responder"
+      : followedSocialNetworks.length > 0
+        ? followedSocialNetworks
+            .map(
+              (network: string) =>
+                socialNetworkLabels[network] ??
+                network,
+            )
+            .join(", ")
+        : "Ainda não segue";
 
   const maximumBirthDate =
     new Date()
@@ -226,13 +244,9 @@ export default async function ProfilePage({
         />
 
         <InformationCard
-          label="Redes do Varanda"
-          value={
-            socialStatusLabels[
-              profile.social_following_status
-            ] ?? "Não informado"
-          }
-          detail="Resposta opcional"
+          label="Redes sociais"
+          value={socialNetworksSummary}
+          detail="Varanda Esportes"
         />
       </section>
 
@@ -365,39 +379,16 @@ export default async function ProfilePage({
             </select>
           </label>
 
-          <label className="block">
-            <span className="mb-2 block text-sm font-bold text-slate-300">
-              Redes do Varanda
-            </span>
-
-            <select
-              name="socialFollowingStatus"
-              defaultValue={
-                profile.social_following_status
+          <div className="sm:col-span-2">
+            <SocialNetworkPreferences
+              initialNetworks={
+                followedSocialNetworks
               }
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-lime-400"
-            >
-              <option value="BOTH">
-                Sigo no Instagram e YouTube
-              </option>
-
-              <option value="INSTAGRAM">
-                Sigo no Instagram
-              </option>
-
-              <option value="YOUTUBE">
-                Sigo no YouTube
-              </option>
-
-              <option value="NONE">
-                Ainda não sigo
-              </option>
-
-              <option value="NOT_ANSWERED">
-                Prefiro não responder
-              </option>
-            </select>
-          </label>
+              initialAnswered={
+                profile.social_following_answered
+              }
+            />
+          </div>
 
           <label className="block sm:col-span-2">
             <span className="mb-2 block text-sm font-bold text-slate-300">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { login } from "@/app/auth/actions";
+import { BrandLogo } from "@/components/brand-logo";
 
 type LoginPageProps = {
   searchParams: Promise<{
@@ -18,9 +19,7 @@ export default async function LoginPage({
     <div className="mx-auto flex min-h-[70vh] max-w-md items-center">
       <section className="w-full rounded-3xl border border-slate-800 bg-[#0e2131] p-7 shadow-2xl">
         <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-lime-400 text-xl font-extrabold text-slate-950">
-            CL
-          </div>
+          <BrandLogo />
 
           <h1 className="mt-5 text-3xl font-extrabold">
             Entrar

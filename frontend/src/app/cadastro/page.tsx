@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { signup } from "@/app/auth/actions";
 import { createClient } from "@/lib/supabase/server";
+import { SocialNetworkPreferences } from "@/components/social-network-preferences";
+import { BrandLogo } from "@/components/brand-logo";
 
 type SignupPageProps = {
   searchParams: Promise<{
@@ -44,9 +46,7 @@ export default async function SignupPage({
     <div className="mx-auto flex min-h-[70vh] max-w-3xl items-center py-8">
       <section className="w-full rounded-3xl border border-slate-800 bg-[#0e2131] p-6 shadow-2xl sm:p-8">
         <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-lime-400 text-xl font-extrabold text-slate-950">
-            CL
-          </div>
+          <BrandLogo />
 
           <h1 className="mt-5 text-3xl font-extrabold">
             Crie sua conta
@@ -194,49 +194,7 @@ export default async function SignupPage({
 
           <div className="border-t border-slate-800" />
 
-          <fieldset>
-            <legend className="text-lg font-extrabold">
-              Redes do Varanda
-            </legend>
-
-            <p className="mt-1 text-sm text-slate-400">
-              Essa resposta é opcional e não
-              impede sua participação.
-            </p>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <SocialOption
-                value="BOTH"
-                label="Sigo nas duas"
-                description="Instagram e YouTube"
-              />
-
-              <SocialOption
-                value="INSTAGRAM"
-                label="Sigo no Instagram"
-                description="Ainda não sigo no YouTube"
-              />
-
-              <SocialOption
-                value="YOUTUBE"
-                label="Sigo no YouTube"
-                description="Ainda não sigo no Instagram"
-              />
-
-              <SocialOption
-                value="NONE"
-                label="Ainda não sigo"
-                description="Quero conhecer as redes"
-              />
-
-              <SocialOption
-                value="NOT_ANSWERED"
-                label="Prefiro não responder"
-                description="Posso decidir depois"
-                defaultChecked
-              />
-            </div>
-          </fieldset>
+          <SocialNetworkPreferences />
 
           <div className="border-t border-slate-800" />
 
@@ -341,39 +299,5 @@ export default async function SignupPage({
         </p>
       </section>
     </div>
-  );
-}
-
-function SocialOption({
-  value,
-  label,
-  description,
-  defaultChecked = false,
-}: {
-  value: string;
-  label: string;
-  description: string;
-  defaultChecked?: boolean;
-}) {
-  return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-700 bg-slate-950/50 p-4 transition hover:border-slate-500 has-[:checked]:border-lime-400 has-[:checked]:bg-lime-400/5">
-      <input
-        name="socialFollowingStatus"
-        type="radio"
-        value={value}
-        defaultChecked={defaultChecked}
-        className="mt-1 h-4 w-4 accent-lime-400"
-      />
-
-      <span>
-        <strong className="block text-sm text-white">
-          {label}
-        </strong>
-
-        <span className="mt-1 block text-xs text-slate-500">
-          {description}
-        </span>
-      </span>
-    </label>
   );
 }
