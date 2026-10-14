@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import { logout } from "@/app/auth/actions";
+import { BrandLogo } from "@/components/brand-logo";
 import { createClient } from "@/lib/supabase/client";
 
 export type NavigationUser = {
@@ -92,11 +93,12 @@ function useIsAdmin() {
         return;
       }
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("is_admin")
-        .eq("id", user.id)
-        .maybeSingle();
+      const { data, error } =
+        await supabase
+          .from("profiles")
+          .select("is_admin")
+          .eq("id", user.id)
+          .maybeSingle();
 
       if (error) {
         console.error(
@@ -120,8 +122,10 @@ function useIsAdmin() {
 }
 
 function useLiveMatchesCount() {
-  const [liveMatchesCount, setLiveMatchesCount] =
-    useState(0);
+  const [
+    liveMatchesCount,
+    setLiveMatchesCount,
+  ] = useState(0);
 
   const loadLiveMatchesCount =
     useCallback(async () => {
@@ -150,16 +154,19 @@ function useLiveMatchesCount() {
         return;
       }
 
-      setLiveMatchesCount(count ?? 0);
+      setLiveMatchesCount(
+        count ?? 0,
+      );
     }, []);
 
   useEffect(() => {
     loadLiveMatchesCount();
 
-    const interval = window.setInterval(
-      loadLiveMatchesCount,
-      10000,
-    );
+    const interval =
+      window.setInterval(
+        loadLiveMatchesCount,
+        10000,
+      );
 
     const supabase = createClient();
 
@@ -233,21 +240,10 @@ export function Sidebar({
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-slate-800 bg-[#091a28] px-5 py-7 lg:flex">
       <Link
         href="/palpites"
-        className="flex items-center gap-3"
+        aria-label="Ir para a página de palpites"
+        className="inline-flex"
       >
-        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-lime-400 text-sm font-black text-slate-950">
-          CL
-        </span>
-
-        <div>
-          <strong className="block text-base font-extrabold">
-            Charqueons
-          </strong>
-
-          <span className="text-[10px] font-bold tracking-[0.25em] text-lime-400">
-            LEAGUE
-          </span>
-        </div>
+        <BrandLogo variant="sidebar" />
       </Link>
 
       <nav className="mt-12 space-y-2">
@@ -283,6 +279,7 @@ export function Sidebar({
 
       <Link
         href="/perfil"
+        aria-label="Abrir perfil"
         className="mt-5 flex items-center gap-3 rounded-xl p-2 transition hover:bg-slate-800"
       >
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-900 text-xs font-bold">
@@ -302,7 +299,10 @@ export function Sidebar({
         </div>
       </Link>
 
-      <form action={logout} className="mt-2">
+      <form
+        action={logout}
+        className="mt-2"
+      >
         <button
           type="submit"
           className="w-full rounded-xl border border-red-400/20 px-4 py-2 text-sm font-bold text-red-400 transition hover:bg-red-400/10"
@@ -325,7 +325,8 @@ function SidebarLink({
   icon,
   liveMatchesCount,
 }: NavigationLinkProps) {
-  const active = useActiveRoute(href);
+  const active =
+    useActiveRoute(href);
 
   const isLiveItem =
     href === "/ao-vivo";
@@ -400,7 +401,8 @@ function MobileLink({
   icon,
   liveMatchesCount,
 }: NavigationLinkProps) {
-  const active = useActiveRoute(href);
+  const active =
+    useActiveRoute(href);
 
   const isLiveItem =
     href === "/ao-vivo";

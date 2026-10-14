@@ -8,12 +8,29 @@ import { createClient } from "@/lib/supabase/server";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  applicationName:
+    "Charqueons League",
+
   title: {
-    default: "Charqueons League",
-    template: "%s | Charqueons League",
+    default:
+      "Charqueons League",
+    template:
+      "%s | Charqueons League",
   },
+
   description:
     "Bolão digital do Campeonato Paraense.",
+
+  icons: {
+    icon: [
+      {
+        url: "/icon.png",
+        type: "image/png",
+      },
+    ],
+    shortcut: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 type RootLayoutProps = {

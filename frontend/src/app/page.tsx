@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { BrandLogo } from "@/components/brand-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -49,21 +50,10 @@ export default async function LandingPage() {
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-3 px-4 sm:px-5">
           <Link
             href="/"
-            className="flex min-w-0 items-center gap-3"
+            aria-label="Página inicial da Charqueons League"
+            className="inline-flex min-w-0"
           >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-lime-400 text-sm font-black text-slate-950 sm:h-11 sm:w-11">
-              CL
-            </span>
-
-            <div className="min-w-0">
-              <strong className="block truncate text-sm font-extrabold sm:text-base">
-                Charqueons
-              </strong>
-
-              <span className="hidden text-[10px] font-bold tracking-[0.25em] text-lime-400 min-[370px]:block">
-                LEAGUE
-              </span>
-            </div>
+            <BrandLogo variant="header" />
           </Link>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">

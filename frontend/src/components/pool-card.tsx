@@ -1,12 +1,15 @@
 import Link from "next/link";
 
+import { BrandLogo } from "@/components/brand-logo";
 import { PoolCardActions } from "@/components/pool-card-actions";
 
 import type { PoolSummary } from "@/types";
 
 type PoolCardProps = {
   pool: PoolSummary;
-  onRemove?: (pool: PoolSummary) => void;
+  onRemove?: (
+    pool: PoolSummary,
+  ) => void;
 };
 
 export function PoolCard({
@@ -26,15 +29,13 @@ export function PoolCard({
       }`}
     >
       <div className="flex items-center justify-between gap-3">
-        <div
-          className={`flex h-11 w-11 items-center justify-center rounded-xl font-extrabold text-slate-950 ${
-            isGlobal
-              ? "bg-lime-400"
-              : "bg-sky-400"
-          }`}
-        >
-          {isGlobal ? "🏆" : "CL"}
-        </div>
+        {isGlobal ? (
+          <BrandLogo variant="pool" />
+        ) : (
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-400 font-extrabold text-slate-950">
+            CL
+          </div>
+        )}
 
         <span
           className={`rounded-full px-3 py-1 text-xs font-bold ${
@@ -43,7 +44,9 @@ export function PoolCard({
               : "bg-emerald-400/10 text-emerald-400"
           }`}
         >
-          {isGlobal ? "OFICIAL" : "ATIVO"}
+          {isGlobal
+            ? "OFICIAL"
+            : "ATIVO"}
         </span>
       </div>
 
@@ -106,7 +109,9 @@ export function PoolCard({
 
             <PoolStatistic
               label="PONTOS"
-              value={String(pool.points)}
+              value={String(
+                pool.points,
+              )}
             />
 
             <PoolStatistic

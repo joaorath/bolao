@@ -3,6 +3,7 @@ import Link from "next/link";
 import { signup } from "@/app/auth/actions";
 import { createClient } from "@/lib/supabase/server";
 import { SocialNetworkPreferences } from "@/components/social-network-preferences";
+import { BrandLogo } from "@/components/brand-logo";
 
 type SignupPageProps = {
   searchParams: Promise<{
@@ -45,9 +46,7 @@ export default async function SignupPage({
     <div className="mx-auto flex min-h-[70vh] max-w-3xl items-center py-8">
       <section className="w-full rounded-3xl border border-slate-800 bg-[#0e2131] p-6 shadow-2xl sm:p-8">
         <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-lime-400 text-xl font-extrabold text-slate-950">
-            CL
-          </div>
+          <BrandLogo />
 
           <h1 className="mt-5 text-3xl font-extrabold">
             Crie sua conta
