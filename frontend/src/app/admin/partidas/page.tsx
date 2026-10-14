@@ -12,6 +12,7 @@ import { PoolResultsManager } from "@/components/pool-results-manager";
 import { createClient } from "@/lib/supabase/client";
 import { AdminMatchEditor } from "@/components/admin-match-editor";
 import { AdminAuditHistory } from "@/components/admin-audit-history";
+import { FootballSyncPanel,} from "@/components/football-sync-panel";
 
 import type {
     Match,
@@ -370,6 +371,12 @@ export default function AdminMatchesPage() {
 
             {activeTab === "matches" && (
                 <>
+                    <FootballSyncPanel
+                        onSynchronized={() => {
+                            window.location.reload();
+                        }}
+                    />
+
                     <AdminMatchForm
                         onMatchCreated={
                             handleMatchCreated

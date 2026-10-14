@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  isSupportedCompetition,
+} from "@/lib/competitions";
+
 import { createClient } from "@/lib/supabase/server";
 
 type CreatePoolState = {
@@ -11,6 +15,7 @@ type CreatePoolState = {
     id: string;
     name: string;
     inviteCode: string;
+    competition: string;
   } | null;
 };
 
@@ -29,7 +34,10 @@ export async function createPool(
   _previousState: CreatePoolState,
   formData: FormData,
 ): Promise<CreatePoolState> {
-  const name = getText(formData, "name");
+  const name = getText(
+    formData,
+    "name",
+  );
 
   const description = getText(
     formData,
@@ -62,26 +70,47 @@ export async function createPool(
     };
   }
 
+  if (description.length < 3) {
+    return {
+      error:
+        "A descrição precisa ter pelo menos 3 caracteres.",
+      pool: null,
+    };
+  }
+
+  if (description.length > 250) {
+    return {
+      error:
+        "A descrição pode ter no máximo 250 caracteres.",
+      pool: null,
+    };
+  }
+
   if (
     visibility !== "PRIVATE" &&
     visibility !== "PUBLIC"
   ) {
     return {
-      error: "Privacidade inválida.",
+      error:
+        "Privacidade inválida.",
       pool: null,
     };
   }
 
   if (
-    competition !== "Campeonato Paraense"
+    !isSupportedCompetition(
+      competition,
+    )
   ) {
     return {
-      error: "Campeonato inválido.",
+      error:
+        "Campeonato inválido.",
       pool: null,
     };
   }
 
-  const supabase = await createClient();
+  const supabase =
+    await createClient();
 
   const {
     data: { user },
@@ -107,10 +136,20 @@ export async function createPool(
       competition,
       visibility,
     })
-    .select("id, name, invite_code")
+    .select(
+      `
+        id,
+        name,
+        invite_code,
+        competition
+      `,
+    )
     .single();
 
-  if (error || !createdPool) {
+  if (
+    error ||
+    !createdPool
+  ) {
     console.error(
       "Erro ao criar bolão:",
       error,
@@ -133,6 +172,8 @@ export async function createPool(
       name: createdPool.name,
       inviteCode:
         createdPool.invite_code,
+      competition:
+        createdPool.competition,
     },
   };
 }
@@ -145,7 +186,8 @@ export async function deletePool(
     "poolId",
   );
 
-  const supabase = await createClient();
+  const supabase =
+    await createClient();
 
   const {
     data: { user },
@@ -187,7 +229,8 @@ export async function leavePool(
     "poolId",
   );
 
-  const supabase = await createClient();
+  const supabase =
+    await createClient();
 
   const {
     data: { user },
@@ -221,6 +264,7 @@ export async function leavePool(
     )}`,
   );
 }
+
 type JoinPoolState = {
   error: string;
 };
@@ -241,7 +285,8 @@ export async function joinPool(
     };
   }
 
-  const supabase = await createClient();
+  const supabase =
+    await createClient();
 
   const {
     data: { user },
@@ -257,11 +302,15 @@ export async function joinPool(
   } = await supabase.rpc(
     "join_pool_by_code",
     {
-      provided_code: inviteCode,
+      provided_code:
+        inviteCode,
     },
   );
 
-  if (error || !poolId) {
+  if (
+    error ||
+    !poolId
+  ) {
     console.error(
       "Erro ao entrar no bolão:",
       error,
@@ -275,7 +324,11 @@ export async function joinPool(
 
   revalidatePath("/");
   revalidatePath("/boloes");
-  revalidatePath(`/boloes/${poolId}`);
+  revalidatePath(
+    `/boloes/${poolId}`,
+  );
 
-  redirect(`/boloes/${poolId}`);
+  redirect(
+    `/boloes/${poolId}`,
+  );
 }
