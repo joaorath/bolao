@@ -7,9 +7,17 @@ import {
   useState,
 } from "react";
 
-import { createPool } from "@/app/boloes/actions";
+import {
+  createPool,
+} from "@/app/boloes/actions";
 
-import type { PoolVisibility } from "@/types";
+import {
+  supportedCompetitions,
+} from "@/lib/competitions";
+
+import type {
+  PoolVisibility,
+} from "@/types";
 
 const initialState = {
   error: "",
@@ -17,23 +25,37 @@ const initialState = {
 };
 
 export default function CreatePoolPage() {
-  const [state, formAction, pending] =
-    useActionState(
-      createPool,
-      initialState,
+  const [
+    state,
+    formAction,
+    pending,
+  ] = useActionState(
+    createPool,
+    initialState,
+  );
+
+  const [
+    description,
+    setDescription,
+  ] = useState("");
+
+  const [
+    visibility,
+    setVisibility,
+  ] =
+    useState<PoolVisibility>(
+      "PRIVATE",
     );
 
-  const [description, setDescription] =
-    useState("");
-
-  const [visibility, setVisibility] =
-    useState<PoolVisibility>("PRIVATE");
-
-  const [copied, setCopied] =
-    useState(false);
+  const [
+    copied,
+    setCopied,
+  ] = useState(false);
 
   async function copyInvite() {
-    if (!state.pool?.inviteCode) {
+    if (
+      !state.pool?.inviteCode
+    ) {
       return;
     }
 
@@ -61,9 +83,23 @@ export default function CreatePoolPage() {
           </h1>
 
           <p className="mt-2 text-slate-300">
-            {state.pool.name} foi salvo no
-            Supabase e já possui os jogos do
-            Campeonato Paraense.
+            {state.pool.name} foi
+            salvo no Supabase e
+            está configurado para{" "}
+            <strong>
+              {
+                state.pool
+                  .competition
+              }
+            </strong>
+            .
+          </p>
+
+          <p className="mt-2 text-sm text-slate-400">
+            As partidas dessa
+            competição serão
+            adicionadas automaticamente
+            quando forem sincronizadas.
           </p>
 
           <div className="mt-7 rounded-xl bg-slate-950/50 p-5">
@@ -72,7 +108,10 @@ export default function CreatePoolPage() {
             </span>
 
             <strong className="mt-2 block text-3xl tracking-[0.2em] text-lime-400">
-              {state.pool.inviteCode}
+              {
+                state.pool
+                  .inviteCode
+              }
             </strong>
 
             <button
@@ -125,7 +164,9 @@ export default function CreatePoolPage() {
         </h1>
 
         <p className="mt-2 text-slate-400">
-          Configure o bolão e gere o convite.
+          Configure o campeonato,
+          a privacidade e gere o
+          convite para os participantes.
         </p>
       </header>
 
@@ -149,7 +190,7 @@ export default function CreatePoolPage() {
             name="name"
             minLength={3}
             maxLength={80}
-            placeholder="Ex.: Bolão da Faculdade"
+            placeholder="Ex.: Bolão da Série B"
             className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950/50 px-4 py-3 outline-none transition focus:border-lime-400"
           />
         </label>
@@ -162,6 +203,7 @@ export default function CreatePoolPage() {
           <textarea
             required
             name="description"
+            minLength={3}
             maxLength={250}
             value={description}
             onChange={(event) =>
@@ -175,7 +217,8 @@ export default function CreatePoolPage() {
           />
 
           <span className="mt-1 block text-right text-xs text-slate-500">
-            {description.length}/250
+            {description.length}
+            /250
           </span>
         </label>
 
@@ -185,14 +228,37 @@ export default function CreatePoolPage() {
           </span>
 
           <select
+            required
             name="competition"
-            defaultValue="Campeonato Paraense"
+            defaultValue={
+              "Campeonato Brasileiro Série B"
+            }
             className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none focus:border-lime-400"
           >
-            <option value="Campeonato Paraense">
-              Campeonato Paraense
-            </option>
+            {supportedCompetitions.map(
+              (competition) => (
+                <option
+                  key={
+                    competition.value
+                  }
+                  value={
+                    competition.value
+                  }
+                >
+                  {
+                    competition.label
+                  }
+                </option>
+              ),
+            )}
           </select>
+
+          <span className="mt-2 block text-xs leading-5 text-slate-500">
+            O Ranking Geral continuará
+            sendo exclusivo do Campeonato
+            Paraense. Este campo define
+            apenas os jogos deste bolão.
+          </span>
         </label>
 
         <fieldset>
@@ -203,7 +269,8 @@ export default function CreatePoolPage() {
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <label
               className={`cursor-pointer rounded-xl border p-4 ${
-                visibility === "PRIVATE"
+                visibility ===
+                "PRIVATE"
                   ? "border-lime-400 bg-lime-400/10"
                   : "border-slate-700"
               }`}
@@ -213,24 +280,31 @@ export default function CreatePoolPage() {
                 name="visibility"
                 value="PRIVATE"
                 checked={
-                  visibility === "PRIVATE"
+                  visibility ===
+                  "PRIVATE"
                 }
                 onChange={() =>
-                  setVisibility("PRIVATE")
+                  setVisibility(
+                    "PRIVATE",
+                  )
                 }
                 className="mr-2"
               />
 
-              <strong>Privado</strong>
+              <strong>
+                Privado
+              </strong>
 
               <span className="mt-1 block text-xs text-slate-400">
-                Somente pessoas com o código.
+                Somente pessoas com
+                o código poderão entrar.
               </span>
             </label>
 
             <label
               className={`cursor-pointer rounded-xl border p-4 ${
-                visibility === "PUBLIC"
+                visibility ===
+                "PUBLIC"
                   ? "border-lime-400 bg-lime-400/10"
                   : "border-slate-700"
               }`}
@@ -240,18 +314,24 @@ export default function CreatePoolPage() {
                 name="visibility"
                 value="PUBLIC"
                 checked={
-                  visibility === "PUBLIC"
+                  visibility ===
+                  "PUBLIC"
                 }
                 onChange={() =>
-                  setVisibility("PUBLIC")
+                  setVisibility(
+                    "PUBLIC",
+                  )
                 }
                 className="mr-2"
               />
 
-              <strong>Público</strong>
+              <strong>
+                Público
+              </strong>
 
               <span className="mt-1 block text-xs text-slate-400">
-                Outros usuários poderão encontrar.
+                Outros usuários poderão
+                encontrar esta disputa.
               </span>
             </label>
           </div>
