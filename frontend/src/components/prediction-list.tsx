@@ -553,9 +553,41 @@ function PredictionEditor({
     savedPrediction,
   ]);
 
-  const locked =
+  const [
+    currentTimestamp,
+    setCurrentTimestamp,
+  ] = useState<number | null>(null);
+
+  useEffect(() => {
+    function updateCurrentTimestamp() {
+      setCurrentTimestamp(Date.now());
+    }
+
+    updateCurrentTimestamp();
+
+    const interval = window.setInterval(
+      updateCurrentTimestamp,
+      1000,
+    );
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [match.startsAt]);
+
+  const predictionDeadline =
+    new Date(match.startsAt).getTime();
+
+  const deadlineReached =
+    currentTimestamp !== null &&
+    currentTimestamp >= predictionDeadline;
+
+  const lockedByStatus =
     match.status !== "OPEN" &&
     match.status !== "SCHEDULED";
+
+  const locked =
+    deadlineReached || lockedByStatus;
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -754,6 +786,7 @@ function PredictionEditor({
             <span className="text-amber-400">
               {getLockedMessage(
                 match.status,
+                deadlineReached,
               )}
             </span>
           ) : savedPrediction ? (
@@ -895,9 +928,14 @@ function MatchStatusBadge({
 
 function getLockedMessage(
   status: MatchStatus,
+  deadlineReached = false,
 ) {
-  if (status === "LIVE") {
-    return "A partida começou. Seu palpite está bloqueado.";
+  if (
+    deadlineReached &&
+    (status === "OPEN" ||
+      status === "SCHEDULED")
+  ) {
+    return "O horário da partida chegou. Seu palpite está bloqueado.";
   }
 
   if (status === "HALFTIME") {
