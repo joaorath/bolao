@@ -146,15 +146,17 @@ export default async function SignupPage({
                   Data de nascimento
                 </span>
 
-                <input
-                  name="birthDate"
-                  type="date"
-                  autoComplete="bday"
-                  required
-                  min="1900-01-01"
-                  max={maximumBirthDate}
-                  className="block w-full min-w-0 max-w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-lime-400"
-                />
+                <div className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950 transition focus-within:border-lime-400">
+                  <input
+                    name="birthDate"
+                    type="date"
+                    autoComplete="bday"
+                    required
+                    min="1900-01-01"
+                    max={maximumBirthDate}
+                    className="block w-full min-w-0 max-w-full appearance-none bg-transparent px-4 py-3 outline-none [box-sizing:border-box]"
+                  />
+                </div>
               </label>
 
               <label className="block sm:col-span-2">
