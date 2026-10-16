@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import type { ReactNode } from "react";
@@ -48,23 +50,39 @@ export function AppShell({
       <Sidebar user={user} />
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-800 bg-[#071421]/95 px-5 backdrop-blur lg:hidden">
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-lime-400 text-xs font-black text-slate-950">
-              CL
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-800 bg-[#071421]/95 px-4 backdrop-blur sm:px-5 lg:hidden">
+          <Link
+            href="/palpites"
+            aria-label="Ir para os palpites"
+            className="flex min-w-0 items-center gap-3"
+          >
+            <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-amber-500/25 bg-[#064228] shadow-lg">
+              <Image
+                src="/brand/charqueons-league-square.png"
+                alt="Logo da Charqueons League"
+                fill
+                priority
+                sizes="40px"
+                className="object-cover"
+              />
             </span>
 
-            <strong className="font-extrabold">
+            <strong className="truncate font-extrabold">
               Charqueons
             </strong>
-          </div>
+          </Link>
 
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-900 text-xs font-bold">
+          <Link
+            href="/perfil"
+            aria-label="Abrir meu perfil"
+            title="Abrir meu perfil"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-900 text-xs font-bold transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-lime-400"
+          >
             {user?.initials ?? "CL"}
-          </span>
+          </Link>
         </header>
 
-        <main className="px-5 py-8 pb-28 lg:px-10 lg:py-10">
+        <main className="px-4 py-8 pb-28 sm:px-5 lg:px-10 lg:py-10">
           {children}
         </main>
       </div>
