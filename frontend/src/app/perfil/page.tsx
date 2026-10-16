@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { logout } from "@/app/auth/actions";
 
 import { updateProfile } from "@/app/perfil/actions";
 import { createClient } from "@/lib/supabase/server";
@@ -203,12 +204,23 @@ export default async function ProfilePage({
           </p>
         </div>
 
-        <Link
-          href="#editar-perfil"
-          className="rounded-xl border border-slate-700 px-5 py-3 text-center text-sm font-bold transition hover:border-lime-400 hover:text-lime-400 sm:ml-auto"
-        >
-          Editar perfil
-        </Link>
+        <div className="flex w-full flex-col gap-3 sm:ml-auto sm:w-auto sm:flex-row">
+          <Link
+            href="#editar-perfil"
+            className="rounded-xl border border-slate-700 px-5 py-3 text-center text-sm font-bold transition hover:border-lime-400 hover:text-lime-400"
+          >
+            Editar perfil
+          </Link>
+
+          <form action={logout}>
+            <button
+              type="submit"
+              className="w-full rounded-xl border border-red-400/30 px-5 py-3 text-sm font-bold text-red-400 transition hover:bg-red-400/10"
+            >
+              Sair da conta
+            </button>
+          </form>
+        </div>
       </section>
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -325,7 +337,7 @@ export default async function ProfilePage({
             </div>
           </label>
 
-          <label className="block">
+          <label className="block min-w-0">
             <span className="mb-2 block text-sm font-bold text-slate-300">
               Data de nascimento
             </span>
@@ -340,7 +352,7 @@ export default async function ProfilePage({
               defaultValue={
                 profile.birth_date ?? ""
               }
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-lime-400"
+              className="block w-full min-w-0 max-w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-lime-400"
             />
           </label>
 

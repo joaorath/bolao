@@ -141,7 +141,7 @@ export default async function SignupPage({
                 </span>
               </label>
 
-              <label className="block">
+              <label className="block min-w-0">
                 <span className="mb-2 block text-sm font-bold text-slate-300">
                   Data de nascimento
                 </span>
@@ -153,7 +153,7 @@ export default async function SignupPage({
                   required
                   min="1900-01-01"
                   max={maximumBirthDate}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-lime-400"
+                  className="block w-full min-w-0 max-w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-lime-400"
                 />
               </label>
 
