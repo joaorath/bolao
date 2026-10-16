@@ -861,16 +861,17 @@ function TeamName({
 }) {
   return (
     <div
-      className={`min-w-0 ${align === "right"
+      className={`min-w-0 ${
+        align === "right"
           ? "text-right"
           : "text-left"
-        }`}
+      }`}
     >
       <strong className="block">
         {abbreviation}
       </strong>
 
-      <span className="hidden truncate text-xs text-slate-500 sm:block">
+      <span className="mt-0.5 block truncate text-[10px] leading-tight text-slate-500 sm:text-xs">
         {name}
       </span>
     </div>
