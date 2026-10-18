@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  isValidBirthDate,
+  normalizeBirthDate,
+} from "@/lib/birth-date";
 
 function getText(
   formData: FormData,
@@ -26,36 +30,6 @@ function redirectWithError(
   );
 }
 
-function isValidBirthDate(value: string) {
-  if (
-    !/^\d{4}-\d{2}-\d{2}$/.test(value)
-  ) {
-    return false;
-  }
-
-  const parsedDate = new Date(
-    `${value}T00:00:00.000Z`,
-  );
-
-  if (
-    Number.isNaN(parsedDate.getTime()) ||
-    parsedDate
-      .toISOString()
-      .slice(0, 10) !== value
-  ) {
-    return false;
-  }
-
-  const today = new Date()
-    .toISOString()
-    .slice(0, 10);
-
-  return (
-    value >= "1900-01-01" &&
-    value <= today
-  );
-}
-
 export async function updateProfile(
   formData: FormData,
 ) {
@@ -69,9 +43,11 @@ export async function updateProfile(
     "username",
   ).toLowerCase();
 
-  const birthDate = getText(
-    formData,
-    "birthDate",
+  const birthDate = normalizeBirthDate(
+    getText(
+      formData,
+      "birthDate",
+    ),
   );
 
   const favoriteTeamId = getText(

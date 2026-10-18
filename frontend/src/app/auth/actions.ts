@@ -4,6 +4,15 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  isValidBirthDate,
+  normalizeBirthDate,
+} from "@/lib/birth-date";
+
+export type AuthActionResult = {
+  message: string;
+  invalidFields: string[];
+};
 
 function getText(
   formData: FormData,
@@ -16,50 +25,19 @@ function getText(
     : "";
 }
 
-function redirectWithError(
-  path: string,
+function authError(
   message: string,
-): never {
-  redirect(
-    `${path}?error=${encodeURIComponent(
-      message,
-    )}`,
-  );
-}
-
-function isValidBirthDate(value: string) {
-  if (
-    !/^\d{4}-\d{2}-\d{2}$/.test(value)
-  ) {
-    return false;
-  }
-
-  const parsedDate = new Date(
-    `${value}T00:00:00.000Z`,
-  );
-
-  if (
-    Number.isNaN(parsedDate.getTime()) ||
-    parsedDate
-      .toISOString()
-      .slice(0, 10) !== value
-  ) {
-    return false;
-  }
-
-  const today = new Date()
-    .toISOString()
-    .slice(0, 10);
-
-  return (
-    value >= "1900-01-01" &&
-    value <= today
-  );
+  invalidFields: string[] = [],
+): AuthActionResult {
+  return {
+    message,
+    invalidFields,
+  };
 }
 
 export async function login(
   formData: FormData,
-) {
+): Promise<AuthActionResult> {
   const email = getText(
     formData,
     "email",
@@ -74,9 +52,14 @@ export async function login(
       : "";
 
   if (!email || !password) {
-    redirectWithError(
-      "/login",
+    return authError(
       "Preencha o e-mail e a senha.",
+      [
+        ...(!email ? ["email"] : []),
+        ...(!password
+          ? ["password"]
+          : []),
+      ],
     );
   }
 
@@ -95,11 +78,11 @@ export async function login(
       code: error.code,
     });
 
-    redirectWithError(
-      "/login",
+    return authError(
       error.status === 400
         ? "E-mail ou senha incorretos."
         : "Não foi possível entrar. Tente novamente.",
+      ["email", "password"],
     );
   }
 
@@ -120,9 +103,11 @@ export async function signup(
     "username",
   ).toLowerCase();
 
-  const birthDate = getText(
-    formData,
-    "birthDate",
+  const birthDate = normalizeBirthDate(
+    getText(
+      formData,
+      "birthDate",
+    ),
   );
 
   const favoriteTeamId = getText(
@@ -161,9 +146,9 @@ export async function signup(
     );
 
   if (hasInvalidSocialNetwork) {
-    redirectWithError(
-      "/cadastro",
+    return authError(
       "Foi selecionada uma rede social inválida.",
+      ["followedSocialNetworks"],
     );
   }
 
@@ -218,9 +203,28 @@ export async function signup(
     !password ||
     !passwordConfirmation
   ) {
-    redirectWithError(
-      "/cadastro",
+    return authError(
       "Preencha todos os campos obrigatórios.",
+      [
+        ...(!fullName ? ["fullName"] : []),
+        ...(!username ? ["username"] : []),
+        ...(!birthDate
+          ? ["birthDate"]
+          : []),
+        ...(!favoriteTeamId
+          ? ["favoriteTeamId"]
+          : []),
+        ...(!email ? ["email"] : []),
+        ...(!emailConfirmation
+          ? ["emailConfirmation"]
+          : []),
+        ...(!password
+          ? ["password"]
+          : []),
+        ...(!passwordConfirmation
+          ? ["passwordConfirmation"]
+          : []),
+      ],
     );
   }
 
@@ -229,9 +233,9 @@ export async function signup(
     fullName.length > 120 ||
     fullName.split(" ").length < 2
   ) {
-    redirectWithError(
-      "/cadastro",
+    return authError(
       "Informe seu nome completo.",
+      ["fullName"],
     );
   }
 
@@ -240,37 +244,40 @@ export async function signup(
       username,
     )
   ) {
-    redirectWithError(
-      "/cadastro",
+    return authError(
       "O usuário deve ter entre 3 e 24 caracteres e usar apenas letras minúsculas, números ou _.",
+      ["username"],
     );
   }
 
   if (!isValidBirthDate(birthDate)) {
-    redirectWithError(
-      "/cadastro",
+    return authError(
       "Informe uma data de nascimento válida.",
+      ["birthDate"],
     );
   }
 
   if (email !== emailConfirmation) {
-    redirectWithError(
-      "/cadastro",
+    return authError(
       "Os endereços de e-mail não são iguais.",
+      ["email", "emailConfirmation"],
     );
   }
 
   if (password.length < 8) {
-    redirectWithError(
-      "/cadastro",
+    return authError(
       "A senha precisa ter pelo menos 8 caracteres.",
+      ["password"],
     );
   }
 
   if (password !== passwordConfirmation) {
-    redirectWithError(
-      "/cadastro",
+    return authError(
       "As senhas não são iguais.",
+      [
+        "password",
+        "passwordConfirmation",
+      ],
     );
   }
 
@@ -303,16 +310,16 @@ export async function signup(
       usernameResult.error,
     );
 
-    redirectWithError(
-      "/cadastro",
+    return authError(
       "Não foi possível verificar o nome de usuário.",
+      ["username"],
     );
   }
 
   if (!usernameResult.data) {
-    redirectWithError(
-      "/cadastro",
+    return authError(
       "Esse nome de usuário já está sendo utilizado.",
+      ["username"],
     );
   }
 
@@ -325,9 +332,9 @@ export async function signup(
       teamResult.error,
     );
 
-    redirectWithError(
-      "/cadastro",
+    return authError(
       "Selecione um time válido.",
+      ["favoriteTeamId"],
     );
   }
 
@@ -360,13 +367,13 @@ export async function signup(
       },
     );
 
-    redirectWithError(
-      "/cadastro",
+    return authError(
       error.message
         .toLowerCase()
         .includes("already registered")
         ? "Já existe uma conta com esse e-mail."
         : "Não foi possível criar a conta. Verifique os dados e tente novamente.",
+      ["email", "emailConfirmation"],
     );
   }
 

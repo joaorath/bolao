@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { login } from "@/app/auth/actions";
 import { BrandLogo } from "@/components/brand-logo";
+import { PersistentAuthForm } from "@/components/persistent-auth-form";
 
 type LoginPageProps = {
   searchParams: Promise<{
@@ -42,8 +43,9 @@ export default async function LoginPage({
           </div>
         )}
 
-        <form
+        <PersistentAuthForm
           action={login}
+          sensitiveFields={["password"]}
           className="mt-7 space-y-5"
         >
           <label className="block">
@@ -83,7 +85,7 @@ export default async function LoginPage({
           >
             Entrar
           </button>
-        </form>
+        </PersistentAuthForm>
 
         <p className="mt-6 text-center text-sm text-slate-400">
           Ainda não tem uma conta?{" "}

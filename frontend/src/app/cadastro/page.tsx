@@ -4,6 +4,8 @@ import { signup } from "@/app/auth/actions";
 import { createClient } from "@/lib/supabase/server";
 import { SocialNetworkPreferences } from "@/components/social-network-preferences";
 import { BrandLogo } from "@/components/brand-logo";
+import { BirthDateInput } from "@/components/birth-date-input";
+import { PersistentAuthForm } from "@/components/persistent-auth-form";
 
 type SignupPageProps = {
   searchParams: Promise<{
@@ -36,11 +38,6 @@ export default async function SignupPage({
       teamsError,
     );
   }
-
-  const maximumBirthDate =
-    new Date()
-      .toISOString()
-      .slice(0, 10);
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-3xl items-center py-8">
@@ -79,8 +76,12 @@ export default async function SignupPage({
           </div>
         )}
 
-        <form
+        <PersistentAuthForm
           action={signup}
+          sensitiveFields={[
+            "password",
+            "passwordConfirmation",
+          ]}
           className="mt-7 space-y-7"
         >
           <fieldset>
@@ -146,17 +147,7 @@ export default async function SignupPage({
                   Data de nascimento
                 </span>
 
-                <div className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950 transition focus-within:border-lime-400">
-                  <input
-                    name="birthDate"
-                    type="date"
-                    autoComplete="bday"
-                    required
-                    min="1900-01-01"
-                    max={maximumBirthDate}
-                    className="block w-full min-w-0 max-w-full appearance-none bg-transparent px-4 py-3 outline-none [box-sizing:border-box]"
-                  />
-                </div>
+                <BirthDateInput />
               </label>
 
               <label className="block sm:col-span-2">
@@ -288,7 +279,7 @@ export default async function SignupPage({
           >
             Criar minha conta
           </button>
-        </form>
+        </PersistentAuthForm>
 
         <p className="mt-6 text-center text-sm text-slate-400">
           Já possui uma conta?{" "}

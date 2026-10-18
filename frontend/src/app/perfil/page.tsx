@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { logout } from "@/app/auth/actions";
-
+import { BirthDateInput } from "@/components/birth-date-input";
 import { updateProfile } from "@/app/perfil/actions";
 import { createClient } from "@/lib/supabase/server";
 import { SocialNetworkPreferences } from "@/components/social-network-preferences";
@@ -154,11 +154,6 @@ export default async function ProfilePage({
             )
             .join(", ")
         : "Ainda não segue";
-
-  const maximumBirthDate =
-    new Date()
-      .toISOString()
-      .slice(0, 10);
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -342,20 +337,11 @@ export default async function ProfilePage({
               Data de nascimento
             </span>
 
-            <div className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950 transition focus-within:border-lime-400">
-              <input
-                name="birthDate"
-                type="date"
-                autoComplete="bday"
-                required
-                min="1900-01-01"
-                max={maximumBirthDate}
-                defaultValue={
-                  profile.birth_date ?? ""
-                }
-                className="block w-full min-w-0 max-w-full appearance-none bg-transparent px-4 py-3 outline-none [box-sizing:border-box]"
-              />
-            </div>
+            <BirthDateInput
+              defaultValue={
+                profile.birth_date ?? ""
+              }
+            />
           </label>
 
           <label className="block">
