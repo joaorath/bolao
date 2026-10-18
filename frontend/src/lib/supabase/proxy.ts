@@ -124,7 +124,9 @@ export async function updateSession(
     pathname === "/" ||
     pathname === "/login" ||
     pathname === "/cadastro" ||
-    pathname.startsWith("/auth/");
+    pathname.startsWith("/auth/") ||
+    pathname ===
+      "/api/cron/football-sync";
 
   if (
     !isAuthenticated &&

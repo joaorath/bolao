@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 import { AdminMatchEditor } from "@/components/admin-match-editor";
 import { AdminAuditHistory } from "@/components/admin-audit-history";
 import { FootballSyncPanel,} from "@/components/football-sync-panel";
+import { MatchSyncControls } from "@/components/match-sync-controls";
 
 import type {
     Match,
@@ -375,6 +376,14 @@ export default function AdminMatchesPage() {
                         onSynchronized={() => {
                             window.location.reload();
                         }}
+                    />
+
+                    <MatchSyncControls />
+
+                    <AdminMatchForm
+                        onMatchCreated={
+                            handleMatchCreated
+                        }
                     />
 
                     <AdminMatchForm
