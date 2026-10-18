@@ -34,7 +34,9 @@ type DatabaseRankingEntry = {
   exact_scores: number | string;
   correct_results: number | string;
   wrong_predictions: number | string;
-  total_participants: number | string;
+  total_participants:
+    | number
+    | string;
   is_current_user: boolean;
   is_top_entry: boolean;
 };
@@ -45,87 +47,188 @@ export function PoolRanking({
   poolId: string;
 }) {
   const [status, setStatus] =
-    useState<RankingStatus>("loading");
+    useState<RankingStatus>(
+      "loading",
+    );
 
   const [ranking, setRanking] =
     useState<RankingEntry[]>([]);
 
-  const loadRanking =
-    useCallback(async () => {
-      setStatus("loading");
+  const [
+    isProvisional,
+    setIsProvisional,
+  ] = useState(false);
 
-      const supabase = createClient();
+  const loadRanking = useCallback(
+    async (
+      showLoading = true,
+    ) => {
+      if (showLoading) {
+        setStatus("loading");
+      }
+
+      const supabase =
+        createClient();
 
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } =
+        await supabase.auth.getUser();
 
       if (!user) {
         setStatus("error");
         return;
       }
 
-      const { data, error } =
-        await supabase.rpc(
+      const [
+        rankingResult,
+        liveMatchesResult,
+      ] = await Promise.all([
+        supabase.rpc(
           "get_pool_ranking_summary",
           {
-            target_pool_id: poolId,
+            target_pool_id:
+              poolId,
             ranking_limit: 100,
           },
-        );
+        ),
 
-      if (error) {
+        supabase
+          .from("pool_matches")
+          .select("match_id", {
+            count: "exact",
+            head: true,
+          })
+          .eq(
+            "pool_id",
+            poolId,
+          )
+          .in("status", [
+            "LIVE",
+            "HALFTIME",
+          ]),
+      ]);
+
+      if (
+        rankingResult.error
+      ) {
         console.error(
           "Erro ao carregar ranking:",
-          error,
+          rankingResult.error,
         );
 
-        setStatus("error");
+        if (showLoading) {
+          setStatus("error");
+        }
+
         return;
       }
 
+      if (
+        liveMatchesResult.error
+      ) {
+        console.error(
+          "Erro ao verificar partidas ao vivo:",
+          liveMatchesResult.error,
+        );
+      } else {
+        setIsProvisional(
+          (liveMatchesResult.count ??
+            0) > 0,
+        );
+      }
+
       const entries =
-        (data ??
+        (rankingResult.data ??
           []) as DatabaseRankingEntry[];
 
       setRanking(
-        entries.map((entry) => ({
-          userId: entry.user_id,
-          userName: entry.user_name,
-          position: Number(
-            entry.ranking_position,
-          ),
-          points: Number(entry.points),
-          exactScores: Number(
-            entry.exact_scores,
-          ),
-          correctResults: Number(
-            entry.correct_results,
-          ),
-          wrongPredictions: Number(
-            entry.wrong_predictions,
-          ),
-          totalParticipants: Number(
-            entry.total_participants,
-          ),
-          isCurrentUser:
-            entry.is_current_user,
-          isTopEntry:
-            entry.is_top_entry,
-        })),
+        entries.map(
+          (entry) => ({
+            userId:
+              entry.user_id,
+            userName:
+              entry.user_name,
+            position: Number(
+              entry.ranking_position,
+            ),
+            points: Number(
+              entry.points,
+            ),
+            exactScores: Number(
+              entry.exact_scores,
+            ),
+            correctResults:
+              Number(
+                entry.correct_results,
+              ),
+            wrongPredictions:
+              Number(
+                entry.wrong_predictions,
+              ),
+            totalParticipants:
+              Number(
+                entry.total_participants,
+              ),
+            isCurrentUser:
+              entry.is_current_user,
+            isTopEntry:
+              entry.is_top_entry,
+          }),
+        ),
       );
 
       setStatus("success");
-    }, [poolId]);
+    },
+    [poolId],
+  );
 
   useEffect(() => {
-    loadRanking();
+    const initialTimeout =
+      window.setTimeout(() => {
+        void loadRanking(true);
+      }, 0);
+
+    const interval =
+      window.setInterval(() => {
+        void loadRanking(false);
+      }, 10000);
+
+    function handleVisibilityChange() {
+      if (
+        document.visibilityState ===
+        "visible"
+      ) {
+        void loadRanking(false);
+      }
+    }
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange,
+    );
+
+    return () => {
+      window.clearTimeout(
+        initialTimeout,
+      );
+
+      window.clearInterval(
+        interval,
+      );
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange,
+      );
+    };
   }, [loadRanking]);
 
   if (status === "loading") {
     return (
       <div className="rounded-2xl border border-slate-800 bg-[#0e2131] p-8 text-slate-400">
-        Calculando ranking no servidor...
+        Calculando ranking no
+        servidor...
       </div>
     );
   }
@@ -134,16 +237,20 @@ export function PoolRanking({
     return (
       <div className="rounded-2xl border border-red-400/30 bg-red-400/10 p-6">
         <strong className="text-red-400">
-          Não foi possível carregar o ranking
+          Não foi possível carregar
+          o ranking
         </strong>
 
         <p className="mt-2 text-sm text-slate-400">
-          Tente atualizar a classificação.
+          Tente atualizar a
+          classificação.
         </p>
 
         <button
           type="button"
-          onClick={loadRanking}
+          onClick={() => {
+            void loadRanking(true);
+          }}
           className="mt-4 rounded-xl border border-red-400/40 px-4 py-2 text-sm font-bold text-red-300"
         >
           Tentar novamente
@@ -152,9 +259,11 @@ export function PoolRanking({
     );
   }
 
-  const topRanking = ranking.filter(
-    (entry) => entry.isTopEntry,
-  );
+  const topRanking =
+    ranking.filter(
+      (entry) =>
+        entry.isTopEntry,
+    );
 
   const currentUserOutsideTop =
     ranking.find(
@@ -164,14 +273,17 @@ export function PoolRanking({
     );
 
   const totalParticipants =
-    ranking[0]?.totalParticipants ?? 0;
+    ranking[0]
+      ?.totalParticipants ?? 0;
 
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-800 bg-[#0e2131]">
       <header className="flex flex-col gap-4 border-b border-slate-800 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
           <h2 className="text-xl font-extrabold">
-            Classificação
+            {isProvisional
+              ? "Classificação provisória"
+              : "Classificação"}
           </h2>
 
           <p className="mt-1 text-sm text-slate-400">
@@ -180,32 +292,51 @@ export function PoolRanking({
               ? "participante"
               : "participantes"}
             {" · "}
-            5 pontos pelo placar exato e 3 pelo
-            resultado correto.
+            5 pontos pelo placar
+            exato e 3 pelo resultado
+            correto.
           </p>
+
+          {isProvisional && (
+            <p className="mt-2 text-xs font-bold text-amber-400">
+              Atualização automática
+              durante a partida. Os
+              pontos ainda podem mudar.
+            </p>
+          )}
         </div>
 
         <button
           type="button"
-          onClick={loadRanking}
+          onClick={() => {
+            void loadRanking(true);
+          }}
           className="w-full rounded-xl border border-lime-400/30 px-4 py-2 text-sm font-bold text-lime-400 transition hover:bg-lime-400/10 sm:w-auto"
         >
-          Atualizar ranking
+          {isProvisional
+            ? "Atualizar agora"
+            : "Atualizar ranking"}
         </button>
       </header>
 
       {topRanking.length === 0 ? (
         <div className="p-8 text-center text-slate-400">
-          Nenhum participante encontrado.
+          Nenhum participante
+          encontrado.
         </div>
       ) : (
         <div className="divide-y divide-slate-800">
-          {topRanking.map((entry) => (
-            <RankingRow
-              key={entry.userId}
-              entry={entry}
-            />
-          ))}
+          {topRanking.map(
+            (entry) => (
+              <RankingRow
+                key={entry.userId}
+                entry={entry}
+                provisional={
+                  isProvisional
+                }
+              />
+            ),
+          )}
         </div>
       )}
 
@@ -217,8 +348,13 @@ export function PoolRanking({
 
           <div className="overflow-hidden rounded-xl border border-lime-400/40">
             <RankingRow
-              entry={currentUserOutsideTop}
+              entry={
+                currentUserOutsideTop
+              }
               showTotal
+              provisional={
+                isProvisional
+              }
             />
           </div>
         </div>
@@ -230,9 +366,11 @@ export function PoolRanking({
 function RankingRow({
   entry,
   showTotal = false,
+  provisional = false,
 }: {
   entry: RankingEntry;
   showTotal?: boolean;
+  provisional?: boolean;
 }) {
   return (
     <div
@@ -267,23 +405,29 @@ function RankingRow({
           {showTotal && (
             <>
               {entry.position} de{" "}
-              {entry.totalParticipants}
+              {
+                entry.totalParticipants
+              }
               {" · "}
             </>
           )}
 
           {entry.exactScores} exatos
           {" · "}
-          {entry.correctResults} resultados
+          {entry.correctResults}{" "}
+          resultados
           {" · "}
-          {entry.wrongPredictions} erros
+          {entry.wrongPredictions}{" "}
+          erros
         </p>
       </div>
 
       <strong className="whitespace-nowrap text-sm sm:text-lg">
         {entry.points}{" "}
-        <span className="hidden sm:inline">
-          pts
+        <span className="text-xs text-slate-400 sm:text-sm">
+          {provisional
+            ? "pts prov."
+            : "pts"}
         </span>
       </strong>
     </div>

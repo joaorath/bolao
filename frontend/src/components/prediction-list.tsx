@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  FormEvent,
+  type FormEvent,
   useEffect,
   useState,
 } from "react";
@@ -23,6 +23,12 @@ type SavedPrediction = {
   awayScore: number;
 };
 
+type PredictionEvaluation = {
+  kind: "EXACT" | "RESULT" | "WRONG";
+  points: 0 | 3 | 5;
+  provisional: boolean;
+};
+
 type DatabaseMatch = {
   id: string;
   competition: string;
@@ -42,9 +48,9 @@ type DatabasePoolMatch = {
   official_home_score: number | null;
   official_away_score: number | null;
   matches:
-  | DatabaseMatch
-  | DatabaseMatch[]
-  | null;
+    | DatabaseMatch
+    | DatabaseMatch[]
+    | null;
 };
 
 type DatabaseMatchStatus = {
@@ -79,8 +85,10 @@ export function PredictionList({
   const [loadError, setLoadError] =
     useState("");
 
-  const [applyToAllPools, setApplyToAllPools] =
-    useState(true);
+  const [
+    applyToAllPools,
+    setApplyToAllPools,
+  ] = useState(true);
 
   useEffect(() => {
     async function loadData() {
@@ -231,12 +239,15 @@ export function PredictionList({
         });
       }
 
-      loadedMatches.sort((first, second) => {
-        return (
-          new Date(first.startsAt).getTime() -
-          new Date(second.startsAt).getTime()
-        );
-      });
+      loadedMatches.sort(
+        (first, second) =>
+          new Date(
+            first.startsAt,
+          ).getTime() -
+          new Date(
+            second.startsAt,
+          ).getTime(),
+      );
 
       setMatches(loadedMatches);
 
@@ -261,7 +272,9 @@ export function PredictionList({
         };
       }
 
-      setPredictions(loadedPredictions);
+      setPredictions(
+        loadedPredictions,
+      );
 
       if (poolsResult.error) {
         console.error(
@@ -269,11 +282,14 @@ export function PredictionList({
           poolsResult.error,
         );
 
-        setCompatiblePoolIds([poolId]);
+        setCompatiblePoolIds([
+          poolId,
+        ]);
       } else {
         const currentPool =
           poolsResult.data?.find(
-            (pool) => pool.id === poolId,
+            (pool) =>
+              pool.id === poolId,
           );
 
         if (currentPool) {
@@ -284,7 +300,9 @@ export function PredictionList({
                   pool.competition ===
                   currentPool.competition,
               )
-              .map((pool) => pool.id);
+              .map(
+                (pool) => pool.id,
+              );
 
           setCompatiblePoolIds(
             compatibleIds.length > 0
@@ -297,22 +315,24 @@ export function PredictionList({
       setLoading(false);
     }
 
-    loadData();
+    void loadData();
   }, [poolId]);
 
   useEffect(() => {
-    const supabase = createClient();
+    const supabase =
+      createClient();
 
     async function refreshMatchStatuses() {
-      const { data, error } = await supabase
-        .from("pool_matches")
-        .select(`
-          match_id,
-          status,
-          official_home_score,
-          official_away_score
-        `)
-        .eq("pool_id", poolId);
+      const { data, error } =
+        await supabase
+          .from("pool_matches")
+          .select(`
+            match_id,
+            status,
+            official_home_score,
+            official_away_score
+          `)
+          .eq("pool_id", poolId);
 
       if (error) {
         console.error(
@@ -324,48 +344,54 @@ export function PredictionList({
       }
 
       const currentStatuses =
-        (data ?? []) as DatabaseMatchStatus[];
+        (data ??
+          []) as DatabaseMatchStatus[];
 
-      setMatches((currentMatches) =>
-        currentMatches.map((match) => {
-          const updatedMatch =
-            currentStatuses.find(
-              (item) =>
-                item.match_id === match.id,
-            );
+      setMatches(
+        (currentMatches) =>
+          currentMatches.map(
+            (match) => {
+              const updatedMatch =
+                currentStatuses.find(
+                  (item) =>
+                    item.match_id ===
+                    match.id,
+                );
 
-          if (!updatedMatch) {
-            return match;
-          }
+              if (!updatedMatch) {
+                return match;
+              }
 
-          return {
-            ...match,
-            status:
-              updatedMatch.status as MatchStatus,
-            homeScore:
-              updatedMatch
-                .official_home_score ??
-              undefined,
-            awayScore:
-              updatedMatch
-                .official_away_score ??
-              undefined,
-          };
-        }),
+              return {
+                ...match,
+                status:
+                  updatedMatch
+                    .status as MatchStatus,
+                homeScore:
+                  updatedMatch
+                    .official_home_score ??
+                  undefined,
+                awayScore:
+                  updatedMatch
+                    .official_away_score ??
+                  undefined,
+              };
+            },
+          ),
       );
     }
 
-    const interval = window.setInterval(
-      refreshMatchStatuses,
-      10000,
-    );
+    const interval =
+      window.setInterval(() => {
+        void refreshMatchStatuses();
+      }, 10000);
 
     function handleVisibilityChange() {
       if (
         document.visibilityState ===
         "visible"
       ) {
-        refreshMatchStatuses();
+        void refreshMatchStatuses();
       }
     }
 
@@ -419,22 +445,28 @@ export function PredictionList({
           </h2>
 
           <p className="mt-1 text-sm text-slate-400">
-            Seus palpites ficam salvos na sua
-            conta e separados em cada bolão.
+            Seus palpites ficam salvos na
+            sua conta e separados em cada
+            bolão.
           </p>
         </div>
 
         <label
-          className={`flex items-center gap-3 text-sm ${compatiblePoolIds.length < 2
+          className={`flex items-center gap-3 text-sm ${
+            compatiblePoolIds.length <
+            2
               ? "cursor-not-allowed text-slate-600"
               : "cursor-pointer text-slate-300"
-            }`}
+          }`}
         >
           <input
             type="checkbox"
-            checked={applyToAllPools}
+            checked={
+              applyToAllPools
+            }
             disabled={
-              compatiblePoolIds.length < 2
+              compatiblePoolIds.length <
+              2
             }
             onChange={(event) =>
               setApplyToAllPools(
@@ -444,13 +476,17 @@ export function PredictionList({
             className="h-4 w-4 accent-lime-400"
           />
 
-          Aplicar este palpite em todos os meus bolões
+          Aplicar este palpite em todos
+          os meus bolões
         </label>
-        {compatiblePoolIds.length > 1 &&
+
+        {compatiblePoolIds.length >
+          1 &&
           !applyToAllPools && (
             <p className="text-xs leading-5 text-amber-400 sm:text-right">
-              Atenção: o palpite será salvo somente
-              neste bolão e pode não contar no
+              Atenção: o palpite será
+              salvo somente neste bolão
+              e pode não contar no
               Ranking Geral.
             </p>
           )}
@@ -458,14 +494,14 @@ export function PredictionList({
 
       {matches.length === 0 ? (
         <div className="mt-5 rounded-2xl border border-slate-800 bg-[#0e2131] p-6 text-slate-400">
-          Nenhum jogo disponível neste bolão.
+          Nenhum jogo disponível neste
+          bolão.
         </div>
       ) : (
         <div className="mt-5 space-y-4">
           {matches.map((match) => (
             <PredictionEditor
               key={`${poolId}-${match.id}`}
-              poolId={poolId}
               userId={userId}
               match={match}
               savedPrediction={
@@ -491,7 +527,6 @@ export function PredictionList({
 }
 
 type PredictionEditorProps = {
-  poolId: string;
   userId: string;
   match: Match;
   savedPrediction?: SavedPrediction;
@@ -503,7 +538,6 @@ type PredictionEditorProps = {
 };
 
 function PredictionEditor({
-  poolId,
   userId,
   match,
   savedPrediction,
@@ -512,10 +546,22 @@ function PredictionEditor({
   onSaved,
 }: PredictionEditorProps) {
   const [homeScore, setHomeScore] =
-    useState("");
+    useState(() =>
+      savedPrediction
+        ? String(
+            savedPrediction.homeScore,
+          )
+        : "",
+    );
 
   const [awayScore, setAwayScore] =
-    useState("");
+    useState(() =>
+      savedPrediction
+        ? String(
+            savedPrediction.awayScore,
+          )
+        : "",
+    );
 
   const [feedback, setFeedback] =
     useState("");
@@ -528,66 +574,40 @@ function PredictionEditor({
   const [saving, setSaving] =
     useState(false);
 
-  useEffect(() => {
-    setHomeScore(
-      savedPrediction
-        ? String(
-          savedPrediction.homeScore,
-        )
-        : "",
-    );
-
-    setAwayScore(
-      savedPrediction
-        ? String(
-          savedPrediction.awayScore,
-        )
-        : "",
-    );
-
-    setFeedback("");
-    setFeedbackIsError(false);
-  }, [
-    poolId,
-    match.id,
-    savedPrediction,
-  ]);
-
   const [
     currentTimestamp,
     setCurrentTimestamp,
-  ] = useState<number | null>(null);
+  ] = useState(() => Date.now());
 
   useEffect(() => {
-    function updateCurrentTimestamp() {
-      setCurrentTimestamp(Date.now());
-    }
-
-    updateCurrentTimestamp();
-
-    const interval = window.setInterval(
-      updateCurrentTimestamp,
-      1000,
-    );
+    const interval =
+      window.setInterval(() => {
+        setCurrentTimestamp(
+          Date.now(),
+        );
+      }, 1000);
 
     return () => {
       window.clearInterval(interval);
     };
-  }, [match.startsAt]);
+  }, []);
 
   const predictionDeadline =
-    new Date(match.startsAt).getTime();
+    new Date(
+      match.startsAt,
+    ).getTime();
 
   const deadlineReached =
-    currentTimestamp !== null &&
-    currentTimestamp >= predictionDeadline;
+    currentTimestamp >=
+    predictionDeadline;
 
   const lockedByStatus =
     match.status !== "OPEN" &&
     match.status !== "SCHEDULED";
 
   const locked =
-    deadlineReached || lockedByStatus;
+    deadlineReached ||
+    lockedByStatus;
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -636,7 +656,8 @@ function PredictionEditor({
     setFeedback("");
     setFeedbackIsError(false);
 
-    const supabase = createClient();
+    const supabase =
+      createClient();
 
     const predictionRows =
       targetPoolIds.map(
@@ -653,12 +674,13 @@ function PredictionEditor({
         }),
       );
 
-    const { error } = await supabase
-      .from("predictions")
-      .upsert(predictionRows, {
-        onConflict:
-          "pool_id,match_id,user_id",
-      });
+    const { error } =
+      await supabase
+        .from("predictions")
+        .upsert(predictionRows, {
+          onConflict:
+            "pool_id,match_id,user_id",
+        });
 
     setSaving(false);
 
@@ -701,21 +723,26 @@ function PredictionEditor({
         month: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
-        timeZone: "America/Belem",
+        timeZone:
+          "America/Belem",
       },
     ).format(
       new Date(match.startsAt),
     );
 
+  const predictionEvaluation =
+    evaluatePrediction(
+      match,
+      savedPrediction,
+    );
+
   return (
     <form
       onSubmit={handleSubmit}
-      className={`rounded-2xl border bg-[#0e2131] p-4 sm:p-5 ${match.status === "LIVE"
-          ? "border-red-400/40"
-          : match.status === "HALFTIME"
-            ? "border-amber-400/40"
-            : "border-slate-800"
-        }`}
+      className={`rounded-2xl border bg-[#0e2131] p-4 sm:p-5 ${getPredictionCardStyle(
+        predictionEvaluation,
+        match.status,
+      )}`}
     >
       <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
         <div>
@@ -730,23 +757,31 @@ function PredictionEditor({
           </div>
 
           <p className="mt-2 text-sm text-slate-400">
-            {matchDate} · {match.stadium}
+            {matchDate} ·{" "}
+            {match.stadium}
           </p>
         </div>
 
         <div className="grid w-full grid-cols-[minmax(0,1fr)_56px_auto_56px_minmax(0,1fr)] items-center gap-2 md:w-auto md:gap-3">
           <TeamName
             abbreviation={
-              match.homeTeam.abbreviation
+              match.homeTeam
+                .abbreviation
             }
-            name={match.homeTeam.name}
+            name={
+              match.homeTeam.name
+            }
           />
 
           <ScoreInput
             label={`Placar do ${match.homeTeam.name}`}
             value={homeScore}
-            disabled={locked || saving}
-            onChange={setHomeScore}
+            disabled={
+              locked || saving
+            }
+            onChange={
+              setHomeScore
+            }
           />
 
           <span className="font-extrabold text-slate-500">
@@ -756,15 +791,22 @@ function PredictionEditor({
           <ScoreInput
             label={`Placar do ${match.awayTeam.name}`}
             value={awayScore}
-            disabled={locked || saving}
-            onChange={setAwayScore}
+            disabled={
+              locked || saving
+            }
+            onChange={
+              setAwayScore
+            }
           />
 
           <TeamName
             abbreviation={
-              match.awayTeam.abbreviation
+              match.awayTeam
+                .abbreviation
             }
-            name={match.awayTeam.name}
+            name={
+              match.awayTeam.name
+            }
             align="right"
           />
         </div>
@@ -772,7 +814,18 @@ function PredictionEditor({
 
       <div className="mt-5 flex flex-col gap-3 border-t border-slate-800 pt-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm">
-          {feedback ? (
+          {predictionEvaluation &&
+          savedPrediction ? (
+            <PredictionEvaluationMessage
+              evaluation={
+                predictionEvaluation
+              }
+              prediction={
+                savedPrediction
+              }
+              match={match}
+            />
+          ) : feedback ? (
             <span
               className={
                 feedbackIsError
@@ -793,20 +846,30 @@ function PredictionEditor({
             <span className="text-slate-400">
               Salvo:{" "}
               <strong className="text-white">
-                {savedPrediction.homeScore} ×{" "}
-                {savedPrediction.awayScore}
+                {
+                  savedPrediction
+                    .homeScore
+                }{" "}
+                ×{" "}
+                {
+                  savedPrediction
+                    .awayScore
+                }
               </strong>
             </span>
           ) : (
             <span className="text-slate-500">
-              Palpite ainda não preenchido
+              Palpite ainda não
+              preenchido
             </span>
           )}
         </div>
 
         <button
           type="submit"
-          disabled={locked || saving}
+          disabled={
+            locked || saving
+          }
           className="w-full rounded-xl bg-lime-400 px-5 py-2.5 text-sm font-extrabold text-slate-950 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 sm:w-auto"
         >
           {locked
@@ -822,6 +885,172 @@ function PredictionEditor({
   );
 }
 
+function evaluatePrediction(
+  match: Match,
+  prediction?: SavedPrediction,
+): PredictionEvaluation | null {
+  const scoringStatuses: MatchStatus[] =
+    [
+      "LIVE",
+      "HALFTIME",
+      "FINISHED",
+    ];
+
+  if (
+    !prediction ||
+    !scoringStatuses.includes(
+      match.status,
+    ) ||
+    match.homeScore === undefined ||
+    match.awayScore === undefined
+  ) {
+    return null;
+  }
+
+  const provisional =
+    match.status !== "FINISHED";
+
+  if (
+    prediction.homeScore ===
+      match.homeScore &&
+    prediction.awayScore ===
+      match.awayScore
+  ) {
+    return {
+      kind: "EXACT",
+      points: 5,
+      provisional,
+    };
+  }
+
+  const predictedResult =
+    Math.sign(
+      prediction.homeScore -
+        prediction.awayScore,
+    );
+
+  const officialResult =
+    Math.sign(
+      match.homeScore -
+        match.awayScore,
+    );
+
+  if (
+    predictedResult ===
+    officialResult
+  ) {
+    return {
+      kind: "RESULT",
+      points: 3,
+      provisional,
+    };
+  }
+
+  return {
+    kind: "WRONG",
+    points: 0,
+    provisional,
+  };
+}
+
+function getPredictionCardStyle(
+  evaluation:
+    | PredictionEvaluation
+    | null,
+  status: MatchStatus,
+) {
+  if (
+    evaluation?.kind === "EXACT"
+  ) {
+    return "border-emerald-400/60 shadow-[inset_4px_0_0_#34d399]";
+  }
+
+  if (
+    evaluation?.kind === "RESULT"
+  ) {
+    return "border-amber-400/60 shadow-[inset_4px_0_0_#fbbf24]";
+  }
+
+  if (
+    evaluation?.kind === "WRONG"
+  ) {
+    return "border-red-400/60 shadow-[inset_4px_0_0_#f87171]";
+  }
+
+  if (status === "LIVE") {
+    return "border-red-400/40";
+  }
+
+  if (status === "HALFTIME") {
+    return "border-amber-400/40";
+  }
+
+  return "border-slate-800";
+}
+
+function PredictionEvaluationMessage({
+  evaluation,
+  prediction,
+  match,
+}: {
+  evaluation: PredictionEvaluation;
+  prediction: SavedPrediction;
+  match: Match;
+}) {
+  const labels = {
+    EXACT: "Placar exato",
+    RESULT: "Resultado correto",
+    WRONG:
+      "Resultado incorreto",
+  };
+
+  const styles = {
+    EXACT: "text-emerald-400",
+    RESULT: "text-amber-400",
+    WRONG: "text-red-400",
+  };
+
+  const scoreLabel =
+    evaluation.provisional
+      ? "Placar atual"
+      : "Placar final";
+
+  const pointsLabel =
+    evaluation.points === 0
+      ? evaluation.provisional
+        ? "0 pontos provisórios"
+        : "0 pontos"
+      : evaluation.provisional
+        ? `+${evaluation.points} pontos provisórios`
+        : `+${evaluation.points} pontos`;
+
+  return (
+    <span
+      className={
+        styles[evaluation.kind]
+      }
+    >
+      <strong>
+        {labels[evaluation.kind]}
+      </strong>
+
+      {" · "}Palpite{" "}
+      {prediction.homeScore} ×{" "}
+      {prediction.awayScore}
+
+      {" · "}
+      {scoreLabel}{" "}
+      {match.homeScore} ×{" "}
+      {match.awayScore}
+
+      {" · "}
+      <strong>
+        {pointsLabel}
+      </strong>
+    </span>
+  );
+}
+
 function ScoreInput({
   label,
   value,
@@ -831,7 +1060,9 @@ function ScoreInput({
   label: string;
   value: string;
   disabled?: boolean;
-  onChange: (value: string) => void;
+  onChange: (
+    value: string,
+  ) => void;
 }) {
   return (
     <input
@@ -843,7 +1074,9 @@ function ScoreInput({
       value={value}
       disabled={disabled}
       onChange={(event) =>
-        onChange(event.target.value)
+        onChange(
+          event.target.value,
+        )
       }
       className="h-12 w-14 rounded-xl border border-slate-700 bg-slate-950 text-center text-lg font-extrabold outline-none transition focus:border-lime-400 disabled:cursor-not-allowed disabled:opacity-50"
     />
@@ -918,9 +1151,10 @@ function MatchStatusBadge({
 
   return (
     <span
-      className={`rounded-full px-2 py-1 text-[10px] font-bold ${styles[status] ??
+      className={`rounded-full px-2 py-1 text-[10px] font-bold ${
+        styles[status] ??
         "bg-slate-500/10 text-slate-400"
-        }`}
+      }`}
     >
       {labels[status] ?? status}
     </span>
@@ -937,6 +1171,10 @@ function getLockedMessage(
       status === "SCHEDULED")
   ) {
     return "O horário da partida chegou. Seu palpite está bloqueado.";
+  }
+
+  if (status === "LIVE") {
+    return "A partida está ao vivo. Seu palpite está bloqueado.";
   }
 
   if (status === "HALFTIME") {
