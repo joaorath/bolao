@@ -65,6 +65,8 @@ export type Database = {
           last_error: string | null
           last_round: number | null
           last_success_at: string | null
+          manual_request_count: number
+          manual_request_date: string | null
           processed_count: number
           provider: string
           skipped_count: number
@@ -80,6 +82,8 @@ export type Database = {
           last_error?: string | null
           last_round?: number | null
           last_success_at?: string | null
+          manual_request_count?: number
+          manual_request_date?: string | null
           processed_count?: number
           provider: string
           skipped_count?: number
@@ -95,6 +99,8 @@ export type Database = {
           last_error?: string | null
           last_round?: number | null
           last_success_at?: string | null
+          manual_request_count?: number
+          manual_request_date?: string | null
           processed_count?: number
           provider?: string
           skipped_count?: number
@@ -453,6 +459,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_manual_api_football_request: {
+        Args: {
+          request_date_value: string
+          request_limit_value: number
+          target_championship_id: number
+          target_provider: string
+        }
+        Returns: {
+          request_allowed: boolean
+          request_count: number
+          request_limit: number
+        }[]
+      }
       create_official_match: {
         Args: {
           away_team_abbreviation_value: string

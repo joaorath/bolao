@@ -34,11 +34,15 @@ type FootballSyncState = {
   synchronized_pool_count: number;
   automatic_request_date: string | null;
   automatic_request_count: number;
+  manual_request_date: string | null;
+  manual_request_count: number;
 };
 
 type SyncStatusResponse = {
   state: FootballSyncState | null;
   automaticRequestLimit: number;
+  manualRequestLimit: number;
+  totalRequestLimit: number;
   error?: string;
 };
 
@@ -117,6 +121,16 @@ export function MatchSyncControls() {
     requestLimit,
     setRequestLimit,
   ] = useState(85);
+
+  const [
+    manualRequestLimit,
+    setManualRequestLimit,
+  ] = useState(15);
+
+  const [
+    totalRequestLimit,
+    setTotalRequestLimit,
+  ] = useState(100);
 
   const [loading, setLoading] =
     useState(true);
@@ -215,6 +229,18 @@ export function MatchSyncControls() {
           responseBody
             .automaticRequestLimit ??
             85,
+        );
+
+        setManualRequestLimit(
+          responseBody
+            .manualRequestLimit ??
+            15,
+        );
+
+        setTotalRequestLimit(
+          responseBody
+            .totalRequestLimit ??
+            100,
         );
 
         setErrorMessage("");
@@ -495,6 +521,30 @@ export function MatchSyncControls() {
           .automatic_request_count
       : 0;
 
+  const manualRequestCount =
+    syncState
+      ?.manual_request_date ===
+    todayInBelem
+      ? syncState
+          .manual_request_count
+      : 0;
+
+  const totalRequestCount =
+    automaticRequestCount +
+    manualRequestCount;
+
+  const totalRequestPercentage =
+    totalRequestLimit > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (totalRequestCount /
+              totalRequestLimit) *
+              100,
+          ),
+        )
+      : 0;
+
   const requestPercentage =
     requestLimit > 0
       ? Math.min(
@@ -514,16 +564,6 @@ export function MatchSyncControls() {
   const nearLimit =
     !limitReached &&
     requestPercentage >= 80;
-
-  const automaticMatches =
-    matches.filter(
-      (match) =>
-        match.automatic_sync_enabled,
-    ).length;
-
-  const manualMatches =
-    matches.length -
-    automaticMatches;
 
   const healthLabel =
     syncState?.last_error
@@ -590,7 +630,7 @@ export function MatchSyncControls() {
         </div>
       )}
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <MonitorCard
           label="Estado da API"
           value={healthLabel}
@@ -598,8 +638,18 @@ export function MatchSyncControls() {
         />
 
         <MonitorCard
-          label="Requisições automáticas hoje"
+          label="Automáticas hoje"
           value={`${automaticRequestCount} / ${requestLimit}`}
+        />
+
+        <MonitorCard
+          label="Manuais hoje"
+          value={`${manualRequestCount} / ${manualRequestLimit}`}
+        />
+
+        <MonitorCard
+          label="Consumo total estimado"
+          value={`${totalRequestCount} / ${totalRequestLimit}`}
         />
 
         <MonitorCard
@@ -612,17 +662,12 @@ export function MatchSyncControls() {
               : "—"
           }
         />
-
-        <MonitorCard
-          label="Modos das partidas"
-          value={`${automaticMatches} automáticas · ${manualMatches} manuais`}
-        />
       </div>
 
       <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/30 p-4">
         <div className="flex items-center justify-between gap-4 text-xs">
           <span className="font-bold text-slate-300">
-            Consumo diário reservado
+            Consumo diário total estimado
           </span>
 
           <span
@@ -634,7 +679,7 @@ export function MatchSyncControls() {
                   : "font-bold text-emerald-400"
             }
           >
-            {requestPercentage}%
+            {totalRequestPercentage}%
           </span>
         </div>
 
@@ -648,7 +693,7 @@ export function MatchSyncControls() {
                   : "bg-emerald-400"
             }`}
             style={{
-              width: `${requestPercentage}%`,
+              width: `${totalRequestPercentage}%`,
             }}
           />
         </div>

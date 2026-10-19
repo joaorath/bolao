@@ -19,6 +19,107 @@ import type {
 export const dynamic =
   "force-dynamic";
 
+const MANUAL_REQUEST_LIMIT = 15;
+
+type ServerSupabaseClient =
+  Awaited<
+    ReturnType<typeof createClient>
+  >;
+
+type ManualRequestBudget = {
+  request_allowed: boolean;
+  request_count: number;
+  request_limit: number;
+};
+
+function getCurrentDateInBelem() {
+  const parts =
+    new Intl.DateTimeFormat(
+      "en-CA",
+      {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        timeZone:
+          "America/Belem",
+      },
+    ).formatToParts(new Date());
+
+  const year = parts.find(
+    (part) =>
+      part.type === "year",
+  )?.value;
+
+  const month = parts.find(
+    (part) =>
+      part.type === "month",
+  )?.value;
+
+  const day = parts.find(
+    (part) =>
+      part.type === "day",
+  )?.value;
+
+  if (
+    !year ||
+    !month ||
+    !day
+  ) {
+    throw new Error(
+      "Não foi possível determinar a data atual.",
+    );
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+async function claimManualRequest(
+  supabase: ServerSupabaseClient,
+  championshipId: number,
+) {
+  const {
+    data,
+    error,
+  } = await supabase.rpc(
+    "claim_manual_api_football_request",
+    {
+      target_provider:
+        "api-futebol",
+      target_championship_id:
+        championshipId,
+      request_date_value:
+        getCurrentDateInBelem(),
+      request_limit_value:
+        MANUAL_REQUEST_LIMIT,
+    },
+  );
+
+  if (error) {
+    console.error(
+      "Erro ao reservar requisição manual:",
+      error,
+    );
+
+    throw new Error(
+      "Não foi possível verificar o limite manual da API.",
+    );
+  }
+
+  const result =
+    (
+      data?.[0] ??
+      null
+    ) as ManualRequestBudget | null;
+
+  if (!result) {
+    throw new Error(
+      "A reserva manual da API não retornou um resultado.",
+    );
+  }
+
+  return result;
+}
+
 function parseRound(
   value: unknown,
 ) {
@@ -134,6 +235,26 @@ async function loadNormalizedRound(
   };
 }
 
+function createManualLimitResponse(
+  manualBudget: ManualRequestBudget,
+) {
+  return NextResponse.json(
+    {
+      error:
+        "O limite de 15 requisições manuais de hoje foi atingido. As correções manuais de placar continuam disponíveis.",
+      manualRequestCount:
+        manualBudget.request_count,
+      manualRequestLimit:
+        manualBudget.request_limit,
+      manualRequestLimitReached:
+        true,
+    },
+    {
+      status: 429,
+    },
+  );
+}
+
 export async function GET(
   request: Request,
 ) {
@@ -145,6 +266,9 @@ export async function GET(
   ) {
     return authorization.response;
   }
+
+  const { supabase } =
+    authorization;
 
   const requestUrl =
     new URL(request.url);
@@ -184,6 +308,42 @@ export async function GET(
     );
   }
 
+  let manualBudget:
+    ManualRequestBudget;
+
+  try {
+    manualBudget =
+      await claimManualRequest(
+        supabase,
+        championshipId,
+      );
+  } catch (error) {
+    console.error(
+      "Erro ao verificar reserva manual:",
+      error,
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível verificar o limite manual.",
+      },
+      {
+        status: 500,
+      },
+    );
+  }
+
+  if (
+    !manualBudget.request_allowed
+  ) {
+    return createManualLimitResponse(
+      manualBudget,
+    );
+  }
+
   try {
     const {
       apiRound,
@@ -202,6 +362,10 @@ export async function GET(
       status: apiRound.status,
       matchCount: matches.length,
       matches,
+      manualRequestCount:
+        manualBudget.request_count,
+      manualRequestLimit:
+        manualBudget.request_limit,
     });
   } catch (error) {
     console.error(
@@ -213,6 +377,10 @@ export async function GET(
       {
         error:
           "Não foi possível consultar as partidas.",
+        manualRequestCount:
+          manualBudget.request_count,
+        manualRequestLimit:
+          manualBudget.request_limit,
       },
       {
         status: 502,
@@ -290,6 +458,42 @@ export async function POST(
     );
   }
 
+  let manualBudget:
+    ManualRequestBudget;
+
+  try {
+    manualBudget =
+      await claimManualRequest(
+        supabase,
+        championshipId,
+      );
+  } catch (error) {
+    console.error(
+      "Erro ao verificar reserva manual:",
+      error,
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível verificar o limite manual.",
+      },
+      {
+        status: 500,
+      },
+    );
+  }
+
+  if (
+    !manualBudget.request_allowed
+  ) {
+    return createManualLimitResponse(
+      manualBudget,
+    );
+  }
+
   try {
     const {
       apiRound,
@@ -307,6 +511,10 @@ export async function POST(
         {
           error:
             "A API não retornou partidas para essa rodada.",
+          manualRequestCount:
+            manualBudget.request_count,
+          manualRequestLimit:
+            manualBudget.request_limit,
         },
         {
           status: 422,
@@ -389,6 +597,10 @@ export async function POST(
         {
           error:
             "Não foi possível salvar as partidas no banco.",
+          manualRequestCount:
+            manualBudget.request_count,
+          manualRequestLimit:
+            manualBudget.request_limit,
         },
         {
           status: 500,
@@ -419,6 +631,10 @@ export async function POST(
       matchCount:
         matches.length,
       synchronization,
+      manualRequestCount:
+        manualBudget.request_count,
+      manualRequestLimit:
+        manualBudget.request_limit,
     });
   } catch (error) {
     console.error(
@@ -430,6 +646,10 @@ export async function POST(
       {
         error:
           "Não foi possível sincronizar a rodada.",
+        manualRequestCount:
+          manualBudget.request_count,
+        manualRequestLimit:
+          manualBudget.request_limit,
       },
       {
         status: 502,

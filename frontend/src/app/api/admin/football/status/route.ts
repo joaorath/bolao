@@ -8,13 +8,19 @@ import {
   createClient,
 } from "@/lib/supabase/server";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export const dynamic =
+  "force-dynamic";
+
+export const runtime =
+  "nodejs";
 
 const AUTOMATIC_REQUEST_LIMIT = 85;
+const MANUAL_REQUEST_LIMIT = 15;
+const TOTAL_REQUEST_LIMIT = 100;
 
 export async function GET() {
-  const supabase = await createClient();
+  const supabase =
+    await createClient();
 
   const {
     data: { user },
@@ -78,9 +84,14 @@ export async function GET() {
         skipped_count,
         synchronized_pool_count,
         automatic_request_date,
-        automatic_request_count
+        automatic_request_count,
+        manual_request_date,
+        manual_request_count
       `)
-      .eq("provider", "api-futebol")
+      .eq(
+        "provider",
+        "api-futebol",
+      )
       .maybeSingle();
 
     if (stateError) {
@@ -104,6 +115,10 @@ export async function GET() {
       state,
       automaticRequestLimit:
         AUTOMATIC_REQUEST_LIMIT,
+      manualRequestLimit:
+        MANUAL_REQUEST_LIMIT,
+      totalRequestLimit:
+        TOTAL_REQUEST_LIMIT,
     });
   } catch (error) {
     console.error(
