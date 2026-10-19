@@ -330,10 +330,26 @@ export async function POST(
     state?.last_round ===
     targetRound;
 
+  /*
+  * A Netlify pode iniciar a função alguns
+  * segundos antes ou depois do minuto exato.
+  * A tolerância impede que uma execução de
+  * cinco minutos seja adiada por mais cinco.
+  */
+  const synchronizationToleranceMinutes =
+    1;
+
+  const minimumElapsedMinutes =
+    Math.max(
+      0,
+      intervalMinutes -
+        synchronizationToleranceMinutes,
+    );
+
   if (
     sameRound &&
     elapsedMinutes <
-      intervalMinutes
+      minimumElapsedMinutes
   ) {
     return NextResponse.json({
       synchronized: false,
@@ -342,7 +358,7 @@ export async function POST(
       round: targetRound,
       nextAttemptInMinutes:
         Math.ceil(
-          intervalMinutes -
+          minimumElapsedMinutes -
             elapsedMinutes,
         ),
     });
