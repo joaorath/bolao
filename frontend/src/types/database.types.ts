@@ -502,6 +502,15 @@ export type Database = {
           previous_status: string
         }[]
       }
+      get_pool_available_rounds: {
+        Args: { target_pool_id: string }
+        Returns: {
+          first_match_at: string
+          has_live_matches: boolean
+          has_open_matches: boolean
+          round_number: number
+        }[]
+      }
       get_pool_live_prediction_deltas: {
         Args: { target_pool_id: string }
         Returns: {
@@ -549,6 +558,35 @@ export type Database = {
       }
       get_pool_ranking_summary: {
         Args: { ranking_limit?: number; target_pool_id: string }
+        Returns: {
+          correct_results: number
+          exact_scores: number
+          is_current_user: boolean
+          is_top_entry: boolean
+          points: number
+          ranking_position: number
+          total_participants: number
+          user_id: string
+          user_name: string
+          wrong_predictions: number
+        }[]
+      }
+      get_pool_round_live_prediction_deltas: {
+        Args: { target_pool_id: string; target_round: number }
+        Returns: {
+          live_correct_results: number
+          live_exact_scores: number
+          live_points: number
+          live_wrong_predictions: number
+          user_id: string
+        }[]
+      }
+      get_pool_round_ranking_summary: {
+        Args: {
+          ranking_limit?: number
+          target_pool_id: string
+          target_round: number
+        }
         Returns: {
           correct_results: number
           exact_scores: number

@@ -53,6 +53,7 @@ export function BrandLogo({
           }
           sizes={imageSizes[variant]}
           className="object-cover"
+          loading="eager"
         />
       </span>
 

@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -16,6 +17,10 @@ type RankingStatus =
   | "loading"
   | "success"
   | "error";
+
+type RankingMode =
+  | "general"
+  | "round";
 
 type RankingEntry = {
   userId: string;
@@ -73,10 +78,71 @@ type DatabaseLiveDelta = {
     | string;
 };
 
+type DatabaseAvailableRound = {
+  round_number:
+    | number
+    | string;
+  first_match_at: string;
+  has_live_matches: boolean;
+  has_open_matches: boolean;
+};
+
+type AvailableRound = {
+  roundNumber: number;
+  firstMatchAt: string;
+  hasLiveMatches: boolean;
+  hasOpenMatches: boolean;
+};
+
 type SelectedPlayer = {
   userId: string;
   userName: string;
 };
+
+function chooseDefaultRound(
+  rounds: AvailableRound[],
+) {
+  const liveRound =
+    rounds.find(
+      (round) =>
+        round.hasLiveMatches,
+    );
+
+  if (liveRound) {
+    return liveRound.roundNumber;
+  }
+
+  const openRounds =
+    rounds
+      .filter(
+        (round) =>
+          round.hasOpenMatches,
+      )
+      .sort(
+        (first, second) =>
+          new Date(
+            first.firstMatchAt,
+          ).getTime() -
+          new Date(
+            second.firstMatchAt,
+          ).getTime(),
+      );
+
+  if (openRounds[0]) {
+    return openRounds[0].roundNumber;
+  }
+
+  if (rounds.length === 0) {
+    return null;
+  }
+
+  return Math.max(
+    ...rounds.map(
+      (round) =>
+        round.roundNumber,
+    ),
+  );
+}
 
 export function PoolRanking({
   poolId,
@@ -98,6 +164,29 @@ export function PoolRanking({
   );
 
   const [
+    rankingMode,
+    setRankingMode,
+  ] =
+    useState<RankingMode>(
+      "general",
+    );
+
+  const [
+    availableRounds,
+    setAvailableRounds,
+  ] = useState<AvailableRound[]>(
+    [],
+  );
+
+  const [
+    selectedRound,
+    setSelectedRound,
+  ] =
+    useState<number | null>(
+      null,
+    );
+
+  const [
     isProvisional,
     setIsProvisional,
   ] = useState(false);
@@ -110,10 +199,19 @@ export function PoolRanking({
       null,
     );
 
+  const requestSequence =
+    useRef(0);
+
   const loadRanking = useCallback(
     async (
       showLoading = true,
     ) => {
+      const requestId =
+        requestSequence.current + 1;
+
+      requestSequence.current =
+        requestId;
+
       if (showLoading) {
         setStatus("loading");
       }
@@ -126,48 +224,184 @@ export function PoolRanking({
       } =
         await supabase.auth.getUser();
 
+      if (
+        requestId !==
+        requestSequence.current
+      ) {
+        return;
+      }
+
       if (!user) {
         setStatus("error");
         return;
       }
 
-      const [
-        rankingResult,
-        liveMatchesResult,
-        liveDeltaResult,
-      ] = await Promise.all([
-        supabase.rpc(
-          "get_pool_ranking_summary",
+      const roundsResult =
+        await supabase.rpc(
+          "get_pool_available_rounds",
           {
             target_pool_id:
               poolId,
-            ranking_limit: 100,
           },
-        ),
+        );
 
-        supabase
-          .from("pool_matches")
-          .select("match_id", {
-            count: "exact",
-            head: true,
-          })
-          .eq(
-            "pool_id",
-            poolId,
+      if (
+        requestId !==
+        requestSequence.current
+      ) {
+        return;
+      }
+
+      if (roundsResult.error) {
+        console.error(
+          "Erro ao carregar rodadas do bolão:",
+          roundsResult.error,
+        );
+
+        if (showLoading) {
+          setStatus("error");
+        }
+
+        return;
+      }
+
+      const loadedRounds: AvailableRound[] =
+        (
+          (
+            roundsResult.data ??
+            []
+          ) as DatabaseAvailableRound[]
+        )
+          .map(
+            (
+              round,
+            ): AvailableRound => ({
+              roundNumber:
+                Number(
+                  round.round_number,
+                ),
+              firstMatchAt:
+                round.first_match_at,
+              hasLiveMatches:
+                round.has_live_matches,
+              hasOpenMatches:
+                round.has_open_matches,
+            }),
           )
-          .in("status", [
-            "LIVE",
-            "HALFTIME",
-          ]),
+          .sort(
+            (
+              first:
+                AvailableRound,
+              second:
+                AvailableRound,
+            ) =>
+              second.roundNumber -
+              first.roundNumber,
+          );
 
-        supabase.rpc(
-          "get_pool_live_prediction_deltas",
-          {
-            target_pool_id:
-              poolId,
-          },
-        ),
-      ]);
+      setAvailableRounds(
+        loadedRounds,
+      );
+
+      const selectedRoundExists =
+        selectedRound !== null &&
+        loadedRounds.some(
+          (round) =>
+            round.roundNumber ===
+            selectedRound,
+        );
+
+      const effectiveRound =
+        selectedRoundExists
+          ? selectedRound
+          : chooseDefaultRound(
+              loadedRounds,
+            );
+
+      if (
+        effectiveRound !==
+        selectedRound
+      ) {
+        setSelectedRound(
+          effectiveRound,
+        );
+      }
+
+      if (
+        rankingMode ===
+          "round" &&
+        effectiveRound === null
+      ) {
+        setRanking([]);
+        setIsProvisional(false);
+        setStatus("success");
+        return;
+      }
+
+      let rankingResult;
+      let liveDeltaResult;
+
+      if (
+        rankingMode ===
+        "round"
+      ) {
+        [
+          rankingResult,
+          liveDeltaResult,
+        ] = await Promise.all([
+          supabase.rpc(
+            "get_pool_round_ranking_summary",
+            {
+              target_pool_id:
+                poolId,
+              target_round:
+                effectiveRound!,
+              ranking_limit:
+                100,
+            },
+          ),
+
+          supabase.rpc(
+            "get_pool_round_live_prediction_deltas",
+            {
+              target_pool_id:
+                poolId,
+              target_round:
+                effectiveRound!,
+            },
+          ),
+        ]);
+      } else {
+        [
+          rankingResult,
+          liveDeltaResult,
+        ] = await Promise.all([
+          supabase.rpc(
+            "get_pool_ranking_summary",
+            {
+              target_pool_id:
+                poolId,
+              ranking_limit:
+                100,
+            },
+          ),
+
+          supabase.rpc(
+            "get_pool_live_prediction_deltas",
+            {
+              target_pool_id:
+                poolId,
+            },
+          ),
+        ]);
+      }
+
+      if (
+        requestId !==
+        requestSequence.current
+      ) {
+        return;
+      }
 
       if (
         rankingResult.error
@@ -185,20 +419,6 @@ export function PoolRanking({
       }
 
       if (
-        liveMatchesResult.error
-      ) {
-        console.error(
-          "Erro ao verificar partidas ao vivo:",
-          liveMatchesResult.error,
-        );
-      } else {
-        setIsProvisional(
-          (liveMatchesResult.count ??
-            0) > 0,
-        );
-      }
-
-      if (
         liveDeltaResult.error
       ) {
         console.error(
@@ -206,6 +426,23 @@ export function PoolRanking({
           liveDeltaResult.error,
         );
       }
+
+      const provisional =
+        rankingMode === "round"
+          ? loadedRounds.some(
+              (round) =>
+                round.roundNumber ===
+                  effectiveRound &&
+                round.hasLiveMatches,
+            )
+          : loadedRounds.some(
+              (round) =>
+                round.hasLiveMatches,
+            );
+
+      setIsProvisional(
+        provisional,
+      );
 
       const liveDeltaMap =
         new Map<
@@ -215,8 +452,10 @@ export function PoolRanking({
 
       for (
         const delta of
-        (liveDeltaResult.data ??
-          []) as DatabaseLiveDelta[]
+        (
+          liveDeltaResult.data ??
+          []
+        ) as DatabaseLiveDelta[]
       ) {
         liveDeltaMap.set(
           delta.user_id,
@@ -225,8 +464,10 @@ export function PoolRanking({
       }
 
       const entries =
-        (rankingResult.data ??
-          []) as DatabaseRankingEntry[];
+        (
+          rankingResult.data ??
+          []
+        ) as DatabaseRankingEntry[];
 
       setRanking(
         entries.map(
@@ -241,15 +482,18 @@ export function PoolRanking({
                 entry.user_id,
               userName:
                 entry.user_name,
-              position: Number(
-                entry.ranking_position,
-              ),
-              points: Number(
-                entry.points,
-              ),
-              exactScores: Number(
-                entry.exact_scores,
-              ),
+              position:
+                Number(
+                  entry.ranking_position,
+                ),
+              points:
+                Number(
+                  entry.points,
+                ),
+              exactScores:
+                Number(
+                  entry.exact_scores,
+                ),
               correctResults:
                 Number(
                   entry.correct_results,
@@ -266,10 +510,12 @@ export function PoolRanking({
                 entry.is_current_user,
               isTopEntry:
                 entry.is_top_entry,
-              livePoints: Number(
-                liveDelta
-                  ?.live_points ?? 0,
-              ),
+              livePoints:
+                Number(
+                  liveDelta
+                    ?.live_points ??
+                    0,
+                ),
               liveExactScores:
                 Number(
                   liveDelta
@@ -295,7 +541,11 @@ export function PoolRanking({
 
       setStatus("success");
     },
-    [poolId],
+    [
+      poolId,
+      rankingMode,
+      selectedRound,
+    ],
   );
 
   useEffect(() => {
@@ -324,6 +574,8 @@ export function PoolRanking({
     );
 
     return () => {
+      requestSequence.current += 1;
+
       window.clearTimeout(
         initialTimeout,
       );
@@ -339,6 +591,37 @@ export function PoolRanking({
     };
   }, [loadRanking]);
 
+  function changeRankingMode(
+    newMode: RankingMode,
+  ) {
+    if (
+      newMode === rankingMode
+    ) {
+      return;
+    }
+
+    requestSequence.current += 1;
+    setStatus("loading");
+    setRankingMode(newMode);
+  }
+
+  function changeRound(
+    roundNumber: number,
+  ) {
+    if (
+      roundNumber ===
+      selectedRound
+    ) {
+      return;
+    }
+
+    requestSequence.current += 1;
+    setStatus("loading");
+    setSelectedRound(
+      roundNumber,
+    );
+  }
+
   if (status === "loading") {
     return (
       <div className="rounded-2xl border border-slate-800 bg-[#0e2131] p-8 text-slate-400">
@@ -351,8 +634,7 @@ export function PoolRanking({
     return (
       <div className="rounded-2xl border border-red-400/30 bg-red-400/10 p-6">
         <strong className="text-red-400">
-          Não foi possível carregar o
-          ranking
+          Não foi possível carregar o ranking
         </strong>
 
         <p className="mt-2 text-sm text-slate-400">
@@ -387,28 +669,142 @@ export function PoolRanking({
 
   const totalParticipants =
     ranking[0]
-      ?.totalParticipants ?? 0;
+      ?.totalParticipants ??
+    0;
 
   function openPlayer(
     entry: RankingEntry,
   ) {
     setSelectedPlayer({
-      userId: entry.userId,
+      userId:
+        entry.userId,
       userName:
         entry.userName,
     });
   }
 
+  const rankingTitle =
+    rankingMode === "round" &&
+    selectedRound !== null
+      ? `Classificação da rodada ${selectedRound}`
+      : "Classificação geral";
+
   return (
     <>
       <section className="overflow-hidden rounded-2xl border border-slate-800 bg-[#0e2131]">
+        <div className="border-b border-slate-800 p-4 sm:p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <span className="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">
+                Visualizar ranking
+              </span>
+
+              <div className="mt-2 inline-flex w-full rounded-xl border border-slate-700 bg-slate-950/50 p-1 sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    changeRankingMode(
+                      "general",
+                    );
+                  }}
+                  className={`flex-1 rounded-lg px-4 py-2 text-sm font-bold transition sm:flex-none ${
+                    rankingMode ===
+                    "general"
+                      ? "bg-lime-400 text-slate-950"
+                      : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                  }`}
+                >
+                  Geral
+                </button>
+
+                <button
+                  type="button"
+                  disabled={
+                    availableRounds.length ===
+                    0
+                  }
+                  onClick={() => {
+                    changeRankingMode(
+                      "round",
+                    );
+                  }}
+                  className={`flex-1 rounded-lg px-4 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none ${
+                    rankingMode ===
+                    "round"
+                      ? "bg-lime-400 text-slate-950"
+                      : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                  }`}
+                >
+                  Por rodada
+                </button>
+              </div>
+            </div>
+
+            {rankingMode ===
+              "round" &&
+              availableRounds.length >
+                0 && (
+                <label className="block w-full lg:w-auto">
+                  <span className="mb-2 block text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">
+                    Rodada
+                  </span>
+
+                  <select
+                    value={
+                      selectedRound ??
+                      ""
+                    }
+                    onChange={(
+                      event,
+                    ) => {
+                      changeRound(
+                        Number(
+                          event.target
+                            .value,
+                        ),
+                      );
+                    }}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 font-bold text-white outline-none transition focus:border-lime-400 lg:min-w-48"
+                  >
+                    {availableRounds.map(
+                      (round) => (
+                        <option
+                          key={
+                            round.roundNumber
+                          }
+                          value={
+                            round.roundNumber
+                          }
+                        >
+                          Rodada{" "}
+                          {
+                            round.roundNumber
+                          }
+                          {round.hasLiveMatches
+                            ? " — ao vivo"
+                            : ""}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </label>
+              )}
+          </div>
+        </div>
+
         <header className="flex flex-col gap-4 border-b border-slate-800 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
-            <h2 className="text-xl font-extrabold">
-              {isProvisional
-                ? "Classificação provisória"
-                : "Classificação"}
-            </h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-xl font-extrabold">
+                {rankingTitle}
+              </h2>
+
+              {isProvisional && (
+                <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-300">
+                  Provisório
+                </span>
+              )}
+            </div>
 
             <p className="mt-1 text-sm text-slate-400">
               {totalParticipants}{" "}
@@ -424,6 +820,16 @@ export function PoolRanking({
               Clique em um participante para
               ver os palpites já liberados.
             </p>
+
+            {rankingMode ===
+              "round" &&
+              selectedRound !==
+                null && (
+                <p className="mt-2 text-xs font-bold text-lime-400">
+                  Mostrando apenas os pontos da
+                  rodada {selectedRound}.
+                </p>
+              )}
 
             {isProvisional && (
               <p className="mt-2 text-xs font-bold text-amber-400">
@@ -448,15 +854,31 @@ export function PoolRanking({
         </header>
 
         {topRanking.length === 0 ? (
-          <div className="p-8 text-center text-slate-400">
-            Nenhum participante encontrado.
+          <div className="p-8 text-center">
+            <span className="text-3xl">
+              🏆
+            </span>
+
+            <strong className="mt-3 block text-white">
+              Nenhuma pontuação encontrada
+            </strong>
+
+            <p className="mt-2 text-sm text-slate-400">
+              {rankingMode ===
+                "round" &&
+              selectedRound !== null
+                ? `Ainda não existem palpites pontuados na rodada ${selectedRound}.`
+                : "Nenhum participante foi encontrado neste bolão."}
+            </p>
           </div>
         ) : (
           <div className="divide-y divide-slate-800">
             {topRanking.map(
               (entry) => (
                 <RankingRow
-                  key={entry.userId}
+                  key={
+                    entry.userId
+                  }
                   entry={entry}
                   provisional={
                     isProvisional
@@ -607,7 +1029,8 @@ function RankingRow({
 
           <span
             className={
-              entry.liveExactScores > 0
+              entry.liveExactScores >
+              0
                 ? "font-extrabold text-emerald-400"
                 : "text-slate-500"
             }
@@ -621,7 +1044,8 @@ function RankingRow({
 
           <span
             className={
-              entry.liveCorrectResults > 0
+              entry.liveCorrectResults >
+              0
                 ? "font-extrabold text-amber-400"
                 : "text-slate-500"
             }
@@ -635,7 +1059,8 @@ function RankingRow({
 
           <span
             className={
-              entry.liveWrongPredictions > 0
+              entry.liveWrongPredictions >
+              0
                 ? "font-extrabold text-red-400"
                 : "text-slate-500"
             }

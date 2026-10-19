@@ -64,6 +64,7 @@ export function AppShell({
                 priority
                 sizes="40px"
                 className="object-cover"
+                loading="eager"
               />
             </span>
 
