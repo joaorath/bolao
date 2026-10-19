@@ -502,6 +502,39 @@ export type Database = {
           previous_status: string
         }[]
       }
+      get_pool_live_prediction_deltas: {
+        Args: { target_pool_id: string }
+        Returns: {
+          live_correct_results: number
+          live_exact_scores: number
+          live_points: number
+          live_wrong_predictions: number
+          user_id: string
+        }[]
+      }
+      get_pool_member_prediction_history: {
+        Args: { target_pool_id: string; target_user_id: string }
+        Returns: {
+          away_team_abbreviation: string
+          away_team_name: string
+          competition: string
+          home_team_abbreviation: string
+          home_team_name: string
+          is_provisional: boolean
+          match_id: string
+          match_status: string
+          official_away_score: number
+          official_home_score: number
+          prediction_away_score: number
+          prediction_home_score: number
+          prediction_points: number
+          prediction_result: string
+          round: number
+          starts_at: string
+          user_id: string
+          user_name: string
+        }[]
+      }
       get_pool_ranking: {
         Args: { target_pool_id: string }
         Returns: {
