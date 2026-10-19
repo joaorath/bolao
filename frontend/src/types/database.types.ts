@@ -57,6 +57,8 @@ export type Database = {
       }
       football_sync_state: {
         Row: {
+          automatic_request_count: number
+          automatic_request_date: string | null
           championship_id: number
           inserted_count: number
           last_attempt_at: string | null
@@ -70,6 +72,8 @@ export type Database = {
           updated_count: number
         }
         Insert: {
+          automatic_request_count?: number
+          automatic_request_date?: string | null
           championship_id: number
           inserted_count?: number
           last_attempt_at?: string | null
@@ -83,6 +87,8 @@ export type Database = {
           updated_count?: number
         }
         Update: {
+          automatic_request_count?: number
+          automatic_request_date?: string | null
           championship_id?: number
           inserted_count?: number
           last_attempt_at?: string | null

@@ -20,12 +20,64 @@ export const runtime =
 
 export const maxDuration = 25;
 
+const AUTOMATIC_REQUEST_LIMIT =
+  85;
+
+const BELEM_TIME_ZONE =
+  "America/Belem";
+
 type AutomaticMatch = {
   round: number;
   status: string;
   starts_at: string;
   last_synced_at: string | null;
 };
+
+function getCurrentDateInBelem() {
+  const dateParts =
+    new Intl.DateTimeFormat(
+      "en-US",
+      {
+        timeZone:
+          BELEM_TIME_ZONE,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      },
+    ).formatToParts(
+      new Date(),
+    );
+
+  const year =
+    dateParts.find(
+      (part) =>
+        part.type === "year",
+    )?.value;
+
+  const month =
+    dateParts.find(
+      (part) =>
+        part.type === "month",
+    )?.value;
+
+  const day =
+    dateParts.find(
+      (part) =>
+        part.type === "day",
+    )?.value;
+
+  if (
+    !year ||
+    !month ||
+    !day
+  ) {
+    throw new Error(
+      "Não foi possível calcular a data atual.",
+    );
+  }
+
+  return `${year}-${month}-${day}`;
+}
 
 function isAuthorized(
   request: Request,
@@ -209,7 +261,7 @@ function getIntervalMinutes(
       );
     });
 
-  return nearMatch ? 10 : 60;
+  return nearMatch ? 15 : 180;
 }
 
 export async function POST(
@@ -286,7 +338,9 @@ export async function POST(
     .from("football_sync_state")
     .select(`
       last_round,
-      last_attempt_at
+      last_attempt_at,
+      automatic_request_date,
+      automatic_request_count
     `)
     .eq(
       "provider",
@@ -314,6 +368,15 @@ export async function POST(
       },
     );
   }
+
+  const currentRequestDate =
+  getCurrentDateInBelem();
+
+  const automaticRequestCount =
+    state?.automatic_request_date ===
+    currentRequestDate
+      ? state.automatic_request_count
+      : 0;
 
   const lastAttempt =
     state?.last_attempt_at
@@ -364,6 +427,27 @@ export async function POST(
     });
   }
 
+  if (
+  automaticRequestCount >=
+    AUTOMATIC_REQUEST_LIMIT
+) {
+  return NextResponse.json({
+    synchronized: false,
+    reason:
+      "O limite diário reservado para sincronizações automáticas foi atingido.",
+    round: targetRound,
+    requestDate:
+      currentRequestDate,
+    automaticRequestCount,
+    automaticRequestLimit:
+      AUTOMATIC_REQUEST_LIMIT,
+    requestLimitReached: true,
+  });
+}
+
+const nextAutomaticRequestCount =
+  automaticRequestCount + 1;
+
   const attemptTime =
     new Date().toISOString();
 
@@ -383,6 +467,10 @@ export async function POST(
           attemptTime,
         last_error:
           null,
+        automatic_request_date:
+          currentRequestDate,
+        automatic_request_count:
+          nextAutomaticRequestCount,
       },
       {
         onConflict:
@@ -478,6 +566,10 @@ export async function POST(
       matchCount:
         result.matchCount,
       skippedCount,
+      automaticRequestCount:
+        nextAutomaticRequestCount,
+      automaticRequestLimit:
+        AUTOMATIC_REQUEST_LIMIT,
       synchronization,
     });
   } catch (error) {
