@@ -386,12 +386,6 @@ export default function AdminMatchesPage() {
                         }
                     />
 
-                    <AdminMatchForm
-                        onMatchCreated={
-                            handleMatchCreated
-                        }
-                    />
-
                     <AdminMatchEditor
                         matches={matches}
                         onMatchUpdated={
