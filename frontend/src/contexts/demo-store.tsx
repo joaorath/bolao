@@ -8,7 +8,9 @@ import {
   useState,
 } from "react";
 
-import { pools as initialPools } from "@/data/mock-data";
+import {
+  pools as initialPools,
+} from "@/data/mock-data";
 
 import type {
   CreatePoolInput,
@@ -50,7 +52,9 @@ type DemoStoreContextValue = {
     inviteCode: string,
   ) => JoinPoolResult;
 
-  removePool: (poolId: string) => void;
+  removePool: (
+    poolId: string,
+  ) => void;
 
   savePrediction: (
     input: SavePredictionInput,
@@ -63,7 +67,9 @@ type DemoStoreContextValue = {
 };
 
 const DemoStoreContext =
-  createContext<DemoStoreContextValue | null>(null);
+  createContext<
+    DemoStoreContextValue | null
+  >(null);
 
 function createInviteCode() {
   return Math.random()
@@ -76,14 +82,17 @@ function readStorage<T>(
   key: string,
   fallback: T,
 ): T {
-  const storedValue = localStorage.getItem(key);
+  const storedValue =
+    localStorage.getItem(key);
 
   if (!storedValue) {
     return fallback;
   }
 
   try {
-    return JSON.parse(storedValue) as T;
+    return JSON.parse(
+      storedValue,
+    ) as T;
   } catch {
     localStorage.removeItem(key);
     return fallback;
@@ -95,41 +104,58 @@ export function DemoStoreProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [customPools, setCustomPools] = useState<
-    PoolSummary[]
-  >([]);
+  const [
+    customPools,
+    setCustomPools,
+  ] = useState<PoolSummary[]>([]);
 
-  const [hiddenPoolIds, setHiddenPoolIds] =
-    useState<string[]>([]);
+  const [
+    hiddenPoolIds,
+    setHiddenPoolIds,
+  ] = useState<string[]>([]);
 
-  const [predictions, setPredictions] =
-    useState<Prediction[]>([]);
+  const [
+    predictions,
+    setPredictions,
+  ] = useState<Prediction[]>([]);
 
-  const [hydrated, setHydrated] = useState(false);
+  const [
+    hydrated,
+    setHydrated,
+  ] = useState(false);
 
   useEffect(() => {
-    setCustomPools(
-      readStorage<PoolSummary[]>(
-        POOLS_STORAGE_KEY,
-        [],
-      ),
-    );
+    const hydrationTimeout =
+      window.setTimeout(() => {
+        setCustomPools(
+          readStorage<PoolSummary[]>(
+            POOLS_STORAGE_KEY,
+            [],
+          ),
+        );
 
-    setHiddenPoolIds(
-      readStorage<string[]>(
-        HIDDEN_POOLS_STORAGE_KEY,
-        [],
-      ),
-    );
+        setHiddenPoolIds(
+          readStorage<string[]>(
+            HIDDEN_POOLS_STORAGE_KEY,
+            [],
+          ),
+        );
 
-    setPredictions(
-      readStorage<Prediction[]>(
-        PREDICTIONS_STORAGE_KEY,
-        [],
-      ),
-    );
+        setPredictions(
+          readStorage<Prediction[]>(
+            PREDICTIONS_STORAGE_KEY,
+            [],
+          ),
+        );
 
-    setHydrated(true);
+        setHydrated(true);
+      }, 0);
+
+    return () => {
+      window.clearTimeout(
+        hydrationTimeout,
+      );
+    };
   }, []);
 
   useEffect(() => {
@@ -139,17 +165,23 @@ export function DemoStoreProvider({
 
     localStorage.setItem(
       POOLS_STORAGE_KEY,
-      JSON.stringify(customPools),
+      JSON.stringify(
+        customPools,
+      ),
     );
 
     localStorage.setItem(
       HIDDEN_POOLS_STORAGE_KEY,
-      JSON.stringify(hiddenPoolIds),
+      JSON.stringify(
+        hiddenPoolIds,
+      ),
     );
 
     localStorage.setItem(
       PREDICTIONS_STORAGE_KEY,
-      JSON.stringify(predictions),
+      JSON.stringify(
+        predictions,
+      ),
     );
   }, [
     customPools,
@@ -159,10 +191,19 @@ export function DemoStoreProvider({
   ]);
 
   const pools = useMemo(() => {
-    return [...initialPools, ...customPools].filter(
-      (pool) => !hiddenPoolIds.includes(pool.id),
+    return [
+      ...initialPools,
+      ...customPools,
+    ].filter(
+      (pool) =>
+        !hiddenPoolIds.includes(
+          pool.id,
+        ),
     );
-  }, [customPools, hiddenPoolIds]);
+  }, [
+    customPools,
+    hiddenPoolIds,
+  ]);
 
   function createPool(
     input: CreatePoolInput,
@@ -170,22 +211,29 @@ export function DemoStoreProvider({
     const newPool: PoolSummary = {
       id: crypto.randomUUID(),
       name: input.name,
-      description: input.description,
-      competition: input.competition,
-      visibility: input.visibility,
+      description:
+        input.description,
+      competition:
+        input.competition,
+      visibility:
+        input.visibility,
       participantCount: 1,
       position: 1,
       points: 0,
       leaderPoints: 0,
-      inviteCode: createInviteCode(),
-      matchSelectionMode: "ALL_COMPETITION",
+      inviteCode:
+        createInviteCode(),
+      matchSelectionMode:
+        "ALL_COMPETITION",
       isOwner: true,
     };
 
-    setCustomPools((currentPools) => [
-      ...currentPools,
-      newPool,
-    ]);
+    setCustomPools(
+      (currentPools) => [
+        ...currentPools,
+        newPool,
+      ],
+    );
 
     return newPool;
   }
@@ -193,49 +241,63 @@ export function DemoStoreProvider({
   function joinPool(
     inviteCode: string,
   ): JoinPoolResult {
-    const normalizedCode = inviteCode
-      .trim()
-      .toUpperCase();
+    const normalizedCode =
+      inviteCode
+        .trim()
+        .toUpperCase();
 
-    const alreadyJoined = pools.some(
-      (pool) =>
-        pool.inviteCode === normalizedCode,
-    );
+    const alreadyJoined =
+      pools.some(
+        (pool) =>
+          pool.inviteCode ===
+          normalizedCode,
+      );
 
     if (alreadyJoined) {
       return {
         success: false,
-        message: "Você já participa deste bolão.",
+        message:
+          "Você já participa deste bolão.",
       };
     }
 
-    if (normalizedCode !== "PARAZAO26") {
+    if (
+      normalizedCode !==
+      "PARAZAO26"
+    ) {
       return {
         success: false,
-        message: "Código de convite não encontrado.",
+        message:
+          "Código de convite não encontrado.",
       };
     }
 
     const invitedPool: PoolSummary = {
       id: "bolao-faculdade",
-      name: "Bolão da Faculdade",
+      name:
+        "Bolão da Faculdade",
       description:
         "Bolão da turma para acompanhar o Campeonato Paraense.",
-      competition: "Campeonato Paraense",
+      competition:
+        "Campeonato Paraense",
       participantCount: 16,
       position: 8,
       points: 18,
       leaderPoints: 39,
-      inviteCode: normalizedCode,
-      matchSelectionMode: "ALL_COMPETITION",
+      inviteCode:
+        normalizedCode,
+      matchSelectionMode:
+        "ALL_COMPETITION",
       visibility: "PRIVATE",
       isOwner: false,
     };
 
-    setCustomPools((currentPools) => [
-      ...currentPools,
-      invitedPool,
-    ]);
+    setCustomPools(
+      (currentPools) => [
+        ...currentPools,
+        invitedPool,
+      ],
+    );
 
     return {
       success: true,
@@ -244,28 +306,43 @@ export function DemoStoreProvider({
     };
   }
 
-  function removePool(poolId: string) {
-    const isCustomPool = customPools.some(
-      (pool) => pool.id === poolId,
-    );
+  function removePool(
+    poolId: string,
+  ) {
+    const isCustomPool =
+      customPools.some(
+        (pool) =>
+          pool.id === poolId,
+      );
 
     if (isCustomPool) {
-      setCustomPools((currentPools) =>
-        currentPools.filter(
-          (pool) => pool.id !== poolId,
-        ),
+      setCustomPools(
+        (currentPools) =>
+          currentPools.filter(
+            (pool) =>
+              pool.id !== poolId,
+          ),
       );
 
       return;
     }
 
-    setHiddenPoolIds((currentIds) => {
-      if (currentIds.includes(poolId)) {
-        return currentIds;
-      }
+    setHiddenPoolIds(
+      (currentIds) => {
+        if (
+          currentIds.includes(
+            poolId,
+          )
+        ) {
+          return currentIds;
+        }
 
-      return [...currentIds, poolId];
-    });
+        return [
+          ...currentIds,
+          poolId,
+        ];
+      },
+    );
   }
 
   function savePrediction(
@@ -274,29 +351,38 @@ export function DemoStoreProvider({
     const prediction: Prediction = {
       poolId: input.poolId,
       matchId: input.matchId,
-      homeScore: input.homeScore,
-      awayScore: input.awayScore,
+      homeScore:
+        input.homeScore,
+      awayScore:
+        input.awayScore,
       locked: false,
-      savedAt: new Date().toISOString(),
+      savedAt:
+        new Date().toISOString(),
     };
 
-    setPredictions((currentPredictions) => {
-      const otherPredictions =
-        currentPredictions.filter(
-          (currentPrediction) =>
-            !(
-              currentPrediction.poolId ===
-                input.poolId &&
-              currentPrediction.matchId ===
-                input.matchId
-            ),
-        );
+    setPredictions(
+      (currentPredictions) => {
+        const otherPredictions =
+          currentPredictions.filter(
+            (
+              currentPrediction,
+            ) =>
+              !(
+                currentPrediction
+                  .poolId ===
+                  input.poolId &&
+                currentPrediction
+                  .matchId ===
+                  input.matchId
+              ),
+          );
 
-      return [
-        ...otherPredictions,
-        prediction,
-      ];
-    });
+        return [
+          ...otherPredictions,
+          prediction,
+        ];
+      },
+    );
 
     return prediction;
   }
@@ -307,31 +393,39 @@ export function DemoStoreProvider({
   ) {
     return predictions.find(
       (prediction) =>
-        prediction.poolId === poolId &&
-        prediction.matchId === matchId,
+        prediction.poolId ===
+          poolId &&
+        prediction.matchId ===
+          matchId,
     );
   }
 
-  const value: DemoStoreContextValue = {
-    pools,
-    predictions,
-    ready: hydrated,
-    createPool,
-    joinPool,
-    removePool,
-    savePrediction,
-    getPrediction,
-  };
+  const value:
+    DemoStoreContextValue = {
+      pools,
+      predictions,
+      ready: hydrated,
+      createPool,
+      joinPool,
+      removePool,
+      savePrediction,
+      getPrediction,
+    };
 
   return (
-    <DemoStoreContext.Provider value={value}>
+    <DemoStoreContext.Provider
+      value={value}
+    >
       {children}
     </DemoStoreContext.Provider>
   );
 }
 
 export function useDemoStore() {
-  const context = useContext(DemoStoreContext);
+  const context =
+    useContext(
+      DemoStoreContext,
+    );
 
   if (!context) {
     throw new Error(

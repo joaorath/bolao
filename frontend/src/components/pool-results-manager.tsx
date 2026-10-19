@@ -148,17 +148,26 @@ function ResultEditor({
     useState<MatchStatus | null>(null);
 
   useEffect(() => {
-    setHomeScore(
-      match.homeScore !== undefined
-        ? String(match.homeScore)
-        : "0",
-    );
+    const synchronizationTimeout =
+      window.setTimeout(() => {
+        setHomeScore(
+          match.homeScore !== undefined
+            ? String(match.homeScore)
+            : "0",
+        );
 
-    setAwayScore(
-      match.awayScore !== undefined
-        ? String(match.awayScore)
-        : "0",
-    );
+        setAwayScore(
+          match.awayScore !== undefined
+            ? String(match.awayScore)
+            : "0",
+        );
+      }, 0);
+
+    return () => {
+      window.clearTimeout(
+        synchronizationTimeout,
+      );
+    };
   }, [
     match.homeScore,
     match.awayScore,

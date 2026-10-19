@@ -1,4 +1,4 @@
-export default async function () {
+async function footballSync() {
   const siteUrl =
     process.env.URL;
 
@@ -43,6 +43,8 @@ export default async function () {
     );
   }
 }
+
+export default footballSync;
 
 export const config = {
   schedule: "*/5 * * * *",

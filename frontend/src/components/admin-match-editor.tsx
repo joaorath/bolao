@@ -84,50 +84,67 @@ export function AdminMatchEditor({
       return;
     }
 
-    setCompetition(
-      selectedMatch.competition,
-    );
+    const synchronizationTimeout =
+      window.setTimeout(() => {
+        setCompetition(
+          selectedMatch.competition,
+        );
 
-    setRound(
-      String(selectedMatch.round),
-    );
+        setRound(
+          String(selectedMatch.round),
+        );
 
-    setStadium(
-      selectedMatch.stadium ===
-        "Estádio não informado"
-        ? ""
-        : selectedMatch.stadium,
-    );
+        setStadium(
+          selectedMatch.stadium ===
+            "Estádio não informado"
+            ? ""
+            : selectedMatch.stadium,
+        );
 
-    setStartsAt(
-      toDateTimeLocalValue(
-        selectedMatch.startsAt,
-      ),
-    );
+        setStartsAt(
+          toDateTimeLocalValue(
+            selectedMatch.startsAt,
+          ),
+        );
 
-    setHomeName(
-      selectedMatch.homeTeam.name,
-    );
+        setHomeName(
+          selectedMatch.homeTeam.name,
+        );
 
-    setHomeAbbreviation(
-      selectedMatch.homeTeam.abbreviation,
-    );
+        setHomeAbbreviation(
+          selectedMatch
+            .homeTeam
+            .abbreviation,
+        );
 
-    setHomeColor(
-      selectedMatch.homeTeam.primaryColor,
-    );
+        setHomeColor(
+          selectedMatch
+            .homeTeam
+            .primaryColor,
+        );
 
-    setAwayName(
-      selectedMatch.awayTeam.name,
-    );
+        setAwayName(
+          selectedMatch.awayTeam.name,
+        );
 
-    setAwayAbbreviation(
-      selectedMatch.awayTeam.abbreviation,
-    );
+        setAwayAbbreviation(
+          selectedMatch
+            .awayTeam
+            .abbreviation,
+        );
 
-    setAwayColor(
-      selectedMatch.awayTeam.primaryColor,
-    );
+        setAwayColor(
+          selectedMatch
+            .awayTeam
+            .primaryColor,
+        );
+      }, 0);
+
+    return () => {
+      window.clearTimeout(
+        synchronizationTimeout,
+      );
+    };
   }, [selectedMatch]);
 
   async function handleSubmit(

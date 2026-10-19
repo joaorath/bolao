@@ -304,15 +304,24 @@ export default function LivePage() {
     }, []);
 
   useEffect(() => {
-    loadLiveMatches(true);
+    const initialTimeout =
+      window.setTimeout(() => {
+        void loadLiveMatches(true);
+      }, 0);
 
     const intervalId =
       window.setInterval(() => {
-        loadLiveMatches();
+        void loadLiveMatches();
       }, 15_000);
 
     return () => {
-      window.clearInterval(intervalId);
+      window.clearTimeout(
+        initialTimeout,
+      );
+
+      window.clearInterval(
+        intervalId,
+      );
     };
   }, [loadLiveMatches]);
 

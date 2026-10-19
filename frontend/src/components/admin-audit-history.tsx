@@ -103,7 +103,16 @@ export function AdminAuditHistory() {
   );
 
   useEffect(() => {
-    loadLogs(true);
+    const initialTimeout =
+      window.setTimeout(() => {
+        void loadLogs(true);
+      }, 0);
+
+    return () => {
+      window.clearTimeout(
+        initialTimeout,
+      );
+    };
   }, [loadLogs]);
 
   if (loading) {

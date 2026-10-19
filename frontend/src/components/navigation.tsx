@@ -160,13 +160,15 @@ function useLiveMatchesCount() {
     }, []);
 
   useEffect(() => {
-    loadLiveMatchesCount();
+    const initialTimeout =
+      window.setTimeout(() => {
+        void loadLiveMatchesCount();
+      }, 0);
 
     const interval =
-      window.setInterval(
-        loadLiveMatchesCount,
-        10000,
-      );
+      window.setInterval(() => {
+        void loadLiveMatchesCount();
+      }, 10_000);
 
     const supabase = createClient();
 
@@ -182,7 +184,7 @@ function useLiveMatchesCount() {
           table: "matches",
         },
         () => {
-          loadLiveMatchesCount();
+          void loadLiveMatchesCount();
         },
       )
       .subscribe();
@@ -192,7 +194,7 @@ function useLiveMatchesCount() {
         document.visibilityState ===
         "visible"
       ) {
-        loadLiveMatchesCount();
+        void loadLiveMatchesCount();
       }
     }
 
@@ -202,14 +204,22 @@ function useLiveMatchesCount() {
     );
 
     return () => {
-      window.clearInterval(interval);
+      window.clearTimeout(
+        initialTimeout,
+      );
+
+      window.clearInterval(
+        interval,
+      );
 
       document.removeEventListener(
         "visibilitychange",
         handleVisibilityChange,
       );
 
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(
+        channel,
+      );
     };
   }, [loadLiveMatchesCount]);
 
