@@ -79,6 +79,15 @@ export default async function LoginPage({
             />
           </label>
 
+          <div className="flex justify-end">
+            <Link
+              href="/recuperar-senha"
+              className="text-sm font-bold text-lime-400 transition hover:text-lime-300"
+            >
+              Esqueci minha senha
+            </Link>
+          </div>
+
           <button
             type="submit"
             className="w-full rounded-xl bg-lime-400 px-5 py-3 font-extrabold text-slate-950 transition hover:bg-lime-300"
