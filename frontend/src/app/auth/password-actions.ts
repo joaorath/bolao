@@ -56,6 +56,62 @@ function successResult(
   };
 }
 
+function getPasswordUpdateErrorMessage(
+  error: {
+    message: string;
+    code?: string;
+    status?: number;
+  },
+) {
+  const normalizedMessage =
+    error.message.toLowerCase();
+
+  if (
+    error.code === "same_password" ||
+    normalizedMessage.includes(
+      "same password",
+    ) ||
+    normalizedMessage.includes(
+      "different from the old password",
+    )
+  ) {
+    return "A nova senha precisa ser diferente da senha atual.";
+  }
+
+  if (
+    error.code === "weak_password" ||
+    normalizedMessage.includes(
+      "password should be at least",
+    ) ||
+    normalizedMessage.includes(
+      "password is too weak",
+    )
+  ) {
+    return "A nova senha não atende aos requisitos de segurança. Use pelo menos 8 caracteres.";
+  }
+
+  if (
+    error.status === 429 ||
+    error.code ===
+      "over_request_rate_limit"
+  ) {
+    return "Muitas tentativas foram realizadas. Aguarde alguns minutos e tente novamente.";
+  }
+
+  if (
+    error.status === 401 ||
+    error.code ===
+      "session_not_found" ||
+    error.code ===
+      "refresh_token_not_found" ||
+    error.code === "bad_jwt"
+  ) {
+    return "Sua sessão de recuperação expirou. Solicite um novo link.";
+  }
+
+  return "Não foi possível atualizar sua senha. Tente novamente.";
+}
+
 export async function requestPasswordReset(
   formData: FormData,
 ): Promise<AuthActionResult> {
@@ -236,7 +292,9 @@ export async function updateRecoveredPassword(
     );
 
     return errorResult(
-      "Não foi possível atualizar sua senha. Solicite um novo link e tente novamente.",
+      getPasswordUpdateErrorMessage(
+        error,
+      ),
     );
   }
 

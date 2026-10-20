@@ -27,6 +27,8 @@ export function AppShell({
   const isAuthenticationPage =
     pathname === "/login" ||
     pathname === "/cadastro" ||
+    pathname === "/recuperar-senha" ||
+    pathname === "/redefinir-senha" ||
     pathname.startsWith("/auth/");
 
   const isPublicLandingPage =

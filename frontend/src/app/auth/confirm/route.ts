@@ -107,12 +107,18 @@ export async function GET(
   }
 
   if (verificationSucceeded) {
+    const destinationUrl =
+      request.nextUrl.clone();
+
+    destinationUrl.pathname =
+      nextPath;
+
+    destinationUrl.search = "";
+    destinationUrl.hash = "";
+
     const response =
       NextResponse.redirect(
-        new URL(
-          nextPath,
-          request.url,
-        ),
+        destinationUrl,
       );
 
     if (recoveryRequested) {

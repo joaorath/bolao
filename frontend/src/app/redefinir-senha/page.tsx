@@ -74,6 +74,10 @@ export default async function ResetPasswordPage() {
             />
           </label>
 
+          <p className="text-xs leading-5 text-slate-500">
+            Use uma senha diferente da senha atual.
+          </p>
+
           <label className="block">
             <span className="mb-2 block text-sm font-bold text-slate-300">
               Confirmar nova senha
