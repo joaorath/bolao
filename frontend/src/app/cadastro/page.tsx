@@ -262,11 +262,10 @@ export default async function SignupPage({
           </fieldset>
 
           <div className="rounded-xl border border-slate-700 bg-slate-950/50 p-4 text-xs leading-5 text-slate-400">
-            Após criar a conta, você poderá
-            receber um e-mail de confirmação.
-            Seus dados serão utilizados para
-            identificação e participação nos
-            bolões.
+            Após criar a conta, você receberá
+            um e-mail de confirmação. Será
+            necessário confirmar o endereço
+            antes de entrar na aplicação.
           </div>
 
           <button

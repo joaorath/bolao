@@ -12,6 +12,7 @@ import {
 export type AuthActionResult = {
   message: string;
   invalidFields: string[];
+  success?: boolean;
 };
 
 function getText(
@@ -71,20 +72,27 @@ export async function login(
       password,
     });
 
-  if (error) {
-    console.error("Erro no login:", {
-      message: error.message,
-      status: error.status,
-      code: error.code,
-    });
+    if (error) {
+      console.error("Erro no login:", {
+        message: error.message,
+        status: error.status,
+        code: error.code,
+      });
 
-    return authError(
-      error.status === 400
-        ? "E-mail ou senha incorretos."
-        : "Não foi possível entrar. Tente novamente.",
-      ["email", "password"],
-    );
-  }
+      const normalizedMessage =
+        error.message.toLowerCase();
+
+      return authError(
+        normalizedMessage.includes(
+          "email not confirmed",
+        )
+          ? "Confirme seu e-mail antes de entrar. Verifique também a caixa de spam."
+          : error.status === 400
+            ? "E-mail ou senha incorretos."
+            : "Não foi possível entrar. Tente novamente.",
+        ["email", "password"],
+      );
+    }
 
   revalidatePath("/", "layout");
   redirect("/perfil");
@@ -343,6 +351,14 @@ export async function signup(
       email,
       password,
       options: {
+         emailRedirectTo:
+          `${
+            (
+              process.env.NEXT_PUBLIC_SITE_URL ??
+              process.env.URL ??
+              "http://localhost:3000"
+            ).replace(/\/+$/, "")
+          }/auth/confirm?next=/perfil`,
         data: {
           full_name: fullName,
           username,

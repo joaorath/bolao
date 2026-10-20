@@ -7,7 +7,9 @@ import {
   useState,
 } from "react";
 
-import type { AuthActionResult } from "@/app/auth/actions";
+import type {
+  AuthActionResult,
+} from "@/app/auth/actions";
 
 type PersistentAuthFormProps = {
   action: (
@@ -44,24 +46,30 @@ export function PersistentAuthForm({
       return;
     }
 
-    const form = event.currentTarget;
-    const submitButtons = Array.from(
-      form.querySelectorAll<HTMLButtonElement>(
-        'button[type="submit"]',
-      ),
-    );
+    const form =
+      event.currentTarget;
+
+    const submitButtons =
+      Array.from(
+        form.querySelectorAll<HTMLButtonElement>(
+          'button[type="submit"]',
+        ),
+      );
 
     setPending(true);
     setResult(null);
 
-    submitButtons.forEach((button) => {
-      button.disabled = true;
-    });
+    submitButtons.forEach(
+      (button) => {
+        button.disabled = true;
+      },
+    );
 
     try {
-      const actionResult = await action(
-        new FormData(form),
-      );
+      const actionResult =
+        await action(
+          new FormData(form),
+        );
 
       setResult(actionResult);
 
@@ -82,7 +90,8 @@ export function PersistentAuthForm({
       );
 
       const firstInvalidField =
-        actionResult.invalidFields[0];
+        actionResult
+          .invalidFields[0];
 
       if (firstInvalidField) {
         window.requestAnimationFrame(
@@ -113,6 +122,7 @@ export function PersistentAuthForm({
         message:
           "Não foi possível concluir a operação. Tente novamente.",
         invalidFields: [],
+        success: false,
       });
 
       sensitiveFields.forEach(
@@ -133,9 +143,12 @@ export function PersistentAuthForm({
     } finally {
       setPending(false);
 
-      submitButtons.forEach((button) => {
-        button.disabled = false;
-      });
+      submitButtons.forEach(
+        (button) => {
+          button.disabled =
+            false;
+        },
+      );
     }
   }
 
@@ -148,8 +161,16 @@ export function PersistentAuthForm({
     >
       {result?.message && (
         <div
-          role="alert"
-          className="mb-5 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-300"
+          role={
+            result.success
+              ? "status"
+              : "alert"
+          }
+          className={`mb-5 rounded-xl border p-4 text-sm ${
+            result.success
+              ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+              : "border-red-400/30 bg-red-400/10 text-red-300"
+          }`}
         >
           {result.message}
         </div>
