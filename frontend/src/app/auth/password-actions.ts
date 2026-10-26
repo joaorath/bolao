@@ -138,6 +138,13 @@ export async function requestPasswordReset(
     );
   }
 
+  const cookieStore =
+    await cookies();
+
+    cookieStore.delete(
+    RECOVERY_COOKIE,
+    );
+
   const supabase =
     await createClient();
 
@@ -249,11 +256,12 @@ export async function updateRecoveredPassword(
   const cookieStore =
     await cookies();
 
-  if (
+  const recoveryUserId =
     cookieStore.get(
       RECOVERY_COOKIE,
-    )?.value !== "1"
-  ) {
+    )?.value;
+
+  if (!recoveryUserId) {
     return errorResult(
       "O link de recuperação é inválido ou expirou. Solicite um novo link.",
     );
@@ -271,30 +279,69 @@ export async function updateRecoveredPassword(
     userError ||
     !user
   ) {
+    cookieStore.delete(
+      RECOVERY_COOKIE,
+    );
+
     return errorResult(
       "Sua sessão de recuperação expirou. Solicite um novo link.",
     );
   }
 
-  const { error } =
-    await supabase.auth.updateUser({
-      password,
-    });
+  /*
+   * Impede que uma sessão que já estava aberta
+   * altere a senha de uma conta diferente.
+   */
+  if (
+    user.id !==
+    recoveryUserId
+  ) {
+    cookieStore.delete(
+      RECOVERY_COOKIE,
+    );
 
-  if (error) {
     console.error(
-      "Erro ao atualizar senha:",
+      "Sessão incompatível com a recuperação:",
       {
-        message: error.message,
-        status: error.status,
-        code: error.code,
+        authenticatedUserId:
+          user.id,
+        recoveryUserId,
       },
     );
 
     return errorResult(
-      getPasswordUpdateErrorMessage(
-        error,
-      ),
+      "A conta autenticada não corresponde ao link de recuperação. Solicite um novo link.",
+    );
+  }
+
+  const {
+    data: updateData,
+    error,
+  } = await supabase.auth.updateUser({
+    password,
+  });
+
+  if (
+    error ||
+    !updateData.user
+  ) {
+    if (error) {
+      console.error(
+        "Erro ao atualizar senha:",
+        {
+          message: error.message,
+          status: error.status,
+          code: error.code,
+        },
+      );
+    }
+
+    return errorResult(
+      error
+        ? getPasswordUpdateErrorMessage(
+            error,
+          )
+        : "Não foi possível confirmar a alteração da senha. Tente novamente.",
     );
   }
 
@@ -302,7 +349,15 @@ export async function updateRecoveredPassword(
     RECOVERY_COOKIE,
   );
 
-  await supabase.auth.signOut();
+  const { error: signOutError } =
+    await supabase.auth.signOut();
+
+  if (signOutError) {
+    console.error(
+      "A senha foi alterada, mas houve erro ao encerrar a sessão:",
+      signOutError,
+    );
+  }
 
   redirect(
     `/login?message=${encodeURIComponent(

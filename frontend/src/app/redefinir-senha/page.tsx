@@ -16,18 +16,82 @@ import {
 const RECOVERY_COOKIE =
   "charqueons_password_recovery";
 
-export default async function ResetPasswordPage() {
+type ResetPasswordPageProps = {
+  searchParams: Promise<{
+    token_hash?: string;
+    code?: string;
+    type?: string;
+    next?: string;
+    recovery?: string;
+  }>;
+};
+
+export default async function ResetPasswordPage({
+  searchParams,
+}: ResetPasswordPageProps) {
+  const params =
+    await searchParams;
+
+  /*
+   * Proteção para links antigos ou modelos de
+   * e-mail configurados com o caminho errado.
+   *
+   * Se o token chegar diretamente nesta página,
+   * ele é encaminhado para o callback correto.
+   */
+  if (
+    params.token_hash ||
+    params.code
+  ) {
+    const callbackParams =
+      new URLSearchParams();
+
+    if (params.token_hash) {
+      callbackParams.set(
+        "token_hash",
+        params.token_hash,
+      );
+
+      callbackParams.set(
+        "type",
+        "recovery",
+      );
+    }
+
+    if (params.code) {
+      callbackParams.set(
+        "code",
+        params.code,
+      );
+    }
+
+    callbackParams.set(
+      "next",
+      "/redefinir-senha",
+    );
+
+    callbackParams.set(
+      "recovery",
+      "1",
+    );
+
+    redirect(
+      `/auth/confirm?${callbackParams.toString()}`,
+    );
+  }
+
   const cookieStore =
     await cookies();
 
-  if (
+  const recoveryUserId =
     cookieStore.get(
       RECOVERY_COOKIE,
-    )?.value !== "1"
-  ) {
+    )?.value;
+
+  if (!recoveryUserId) {
     redirect(
       `/login?error=${encodeURIComponent(
-        "Solicite um link de recuperação antes de definir uma nova senha.",
+        "Solicite um novo link de recuperação antes de definir uma nova senha.",
       )}`,
     );
   }
@@ -75,7 +139,8 @@ export default async function ResetPasswordPage() {
           </label>
 
           <p className="text-xs leading-5 text-slate-500">
-            Use uma senha diferente da senha atual.
+            Use uma senha diferente da senha
+            atual.
           </p>
 
           <label className="block">
