@@ -31,6 +31,24 @@ type NavigationItem = {
   adminOnly?: boolean;
 };
 
+type SeasonState =
+  | "loading"
+  | "waiting"
+  | "upcoming"
+  | "live";
+
+type SeasonSummary = {
+  state: SeasonState;
+  round: number | null;
+  nextMatchAt: string | null;
+};
+
+type SeasonMatchRow = {
+  round: number;
+  starts_at: string;
+  status: string;
+};
+
 const navigationItems: NavigationItem[] = [
   {
     href: "/palpites",
@@ -226,6 +244,163 @@ function useLiveMatchesCount() {
   return liveMatchesCount;
 }
 
+function useParaenseSeasonSummary() {
+  const [
+    season,
+    setSeason,
+  ] = useState<SeasonSummary>({
+    state: "loading",
+    round: null,
+    nextMatchAt: null,
+  });
+
+  const loadSeason =
+    useCallback(async () => {
+      const supabase =
+        createClient();
+
+      const {
+        data,
+        error,
+      } = await supabase
+        .from("matches")
+        .select(`
+          round,
+          starts_at,
+          status
+        `)
+        .eq(
+          "competition",
+          "Campeonato Paraense",
+        )
+        .in("status", [
+          "SCHEDULED",
+          "OPEN",
+          "LIVE",
+          "HALFTIME",
+        ])
+        .order("starts_at", {
+          ascending: true,
+        });
+
+      if (error) {
+        console.error(
+          "Erro ao carregar temporada:",
+          error,
+        );
+
+        setSeason({
+          state: "waiting",
+          round: null,
+          nextMatchAt: null,
+        });
+
+        return;
+      }
+
+      const matches =
+        (data ??
+          []) as SeasonMatchRow[];
+
+      const liveMatch =
+        matches.find(
+          (match) =>
+            match.status === "LIVE" ||
+            match.status === "HALFTIME",
+        );
+
+      if (liveMatch) {
+        setSeason({
+          state: "live",
+          round: liveMatch.round,
+          nextMatchAt:
+            liveMatch.starts_at,
+        });
+
+        return;
+      }
+
+      const currentTimestamp =
+        Date.now();
+
+      const nextMatch =
+        matches.find(
+          (match) => {
+            const startsAt =
+              new Date(
+                match.starts_at,
+              ).getTime();
+
+            return (
+              Number.isFinite(startsAt) &&
+              startsAt >
+                currentTimestamp
+            );
+          },
+        );
+
+      if (nextMatch) {
+        setSeason({
+          state: "upcoming",
+          round: nextMatch.round,
+          nextMatchAt:
+            nextMatch.starts_at,
+        });
+
+        return;
+      }
+
+      setSeason({
+        state: "waiting",
+        round: null,
+        nextMatchAt: null,
+      });
+    }, []);
+
+  useEffect(() => {
+    const initialTimeout =
+      window.setTimeout(() => {
+        void loadSeason();
+      }, 0);
+
+    const interval =
+      window.setInterval(() => {
+        void loadSeason();
+      }, 60_000);
+
+    function handleVisibilityChange() {
+      if (
+        document.visibilityState ===
+        "visible"
+      ) {
+        void loadSeason();
+      }
+    }
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange,
+    );
+
+    return () => {
+      window.clearTimeout(
+        initialTimeout,
+      );
+
+      window.clearInterval(
+        interval,
+      );
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange,
+      );
+    };
+  }, [loadSeason]);
+
+  return season;
+}
+
 function getVisibleNavigationItems(
   isAdmin: boolean,
 ) {
@@ -243,6 +418,9 @@ export function Sidebar({
   const liveMatchesCount =
     useLiveMatchesCount();
 
+  const season =
+    useParaenseSeasonSummary();
+
   const visibleItems =
     getVisibleNavigationItems(isAdmin);
 
@@ -256,7 +434,7 @@ export function Sidebar({
         <BrandLogo variant="sidebar" />
       </Link>
 
-      <nav className="mt-12 space-y-2">
+      <nav aria-label="Navegação principal" className="mt-12 space-y-2">
         {visibleItems.map((item) => (
           <SidebarLink
             key={item.href}
@@ -268,24 +446,7 @@ export function Sidebar({
         ))}
       </nav>
 
-      <div className="mt-auto rounded-2xl border border-slate-800 bg-[#102738] p-4">
-        <span className="text-[10px] font-bold tracking-wider text-slate-500">
-          TEMPORADA 2026
-        </span>
-
-        <strong className="mt-2 block text-sm">
-          Campeonato Paraense
-        </strong>
-
-        <div className="mt-4 flex justify-between text-xs text-slate-400">
-          <span>Rodada 4 de 8</span>
-          <span>50%</span>
-        </div>
-
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-700">
-          <div className="h-full w-1/2 rounded-full bg-lime-400" />
-        </div>
-      </div>
+      <SeasonCard season={season} />
 
       <Link
         href="/perfil"
@@ -321,6 +482,122 @@ export function Sidebar({
         </button>
       </form>
     </aside>
+  );
+}
+
+function SeasonCard({
+  season,
+}: {
+  season: SeasonSummary;
+}) {
+  if (season.state === "loading") {
+    return (
+      <section
+        aria-label="Situação da temporada"
+        className="mt-auto rounded-2xl border border-slate-800 bg-[#102738] p-4"
+      >
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+          Temporada
+        </span>
+
+        <p className="mt-3 text-xs text-slate-400">
+          Carregando calendário...
+        </p>
+      </section>
+    );
+  }
+
+  if (
+    season.state === "live"
+  ) {
+    return (
+      <section
+        aria-label="Situação da temporada"
+        className="mt-auto rounded-2xl border border-red-400/20 bg-red-400/5 p-4"
+      >
+        <span className="inline-flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-wider text-red-400">
+          <span
+            aria-hidden="true"
+            className="h-2 w-2 animate-pulse rounded-full bg-red-400"
+          />
+
+          Temporada atual
+        </span>
+
+        <strong className="mt-2 block text-sm">
+          Campeonato Paraense
+        </strong>
+
+        <p className="mt-3 text-xs font-bold text-red-300">
+          Rodada {season.round} em andamento
+        </p>
+      </section>
+    );
+  }
+
+  if (
+    season.state === "upcoming" &&
+    season.nextMatchAt
+  ) {
+    const nextMatchDate =
+      new Intl.DateTimeFormat(
+        "pt-BR",
+        {
+          day: "2-digit",
+          month: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone:
+            "America/Belem",
+        },
+      ).format(
+        new Date(
+          season.nextMatchAt,
+        ),
+      );
+
+    return (
+      <section
+        aria-label="Situação da temporada"
+        className="mt-auto rounded-2xl border border-lime-400/20 bg-lime-400/5 p-4"
+      >
+        <span className="text-[10px] font-extrabold uppercase tracking-wider text-lime-400">
+          Próxima rodada
+        </span>
+
+        <strong className="mt-2 block text-sm">
+          Campeonato Paraense
+        </strong>
+
+        <p className="mt-3 text-xs text-slate-300">
+          Rodada {season.round}
+        </p>
+
+        <p className="mt-1 text-xs text-slate-500">
+          Primeiro jogo em{" "}
+          {nextMatchDate}
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section
+      aria-label="Situação da temporada"
+      className="mt-auto rounded-2xl border border-slate-800 bg-[#102738] p-4"
+    >
+      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+        Próxima temporada
+      </span>
+
+      <strong className="mt-2 block text-sm">
+        Campeonato Paraense
+      </strong>
+
+      <p className="mt-3 text-xs leading-5 text-slate-400">
+        Aguardando divulgação das partidas.
+      </p>
+    </section>
   );
 }
 
