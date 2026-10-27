@@ -208,9 +208,9 @@ export async function verifyPasswordRecoveryCode(
     );
   }
 
-  if (!/^\d{6}$/.test(token)) {
+  if (!/^\d{8}$/.test(token)) {
     return errorResult(
-      "O código deve possuir 6 números.",
+      "O código deve possuir 8 números.",
       ["token"],
     );
   }

@@ -164,7 +164,7 @@ export function PasswordRecoveryFlow({
           </h1>
 
           <p className="mt-2 text-sm leading-6 text-slate-400">
-            Enviamos um código de 6 números
+            Enviamos um código de 8 números
             para o seu e-mail.
           </p>
         </div>
@@ -221,11 +221,11 @@ export function PasswordRecoveryFlow({
               inputMode="numeric"
               autoComplete="one-time-code"
               required
-              minLength={6}
-              maxLength={6}
-              pattern="[0-9]{6}"
-              placeholder="000000"
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-center text-2xl font-extrabold tracking-[0.4em] outline-none transition focus:border-lime-400"
+              minLength={8}
+              maxLength={8}
+              pattern="[0-9]{8}"
+              placeholder="00000000"
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-center text-2xl font-extrabold tracking-[0.2em] sm:tracking-[0.35em] outline-none transition focus:border-lime-400"
             />
           </label>
 
