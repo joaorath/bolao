@@ -126,6 +126,8 @@ export async function updateSession(
     pathname === "/cadastro" ||
     pathname ===
       "/recuperar-senha" ||
+    pathname ===
+      "/redefinir-senha" ||
     pathname.startsWith("/auth/") ||
     pathname ===
       "/api/cron/football-sync";

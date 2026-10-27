@@ -156,19 +156,9 @@ export async function requestPasswordReset(
 
   const redirectUrl =
     new URL(
-      "/auth/confirm",
-      getApplicationUrl(),
+        "/auth/recovery",
+        getApplicationUrl(),
     );
-
-  redirectUrl.searchParams.set(
-    "next",
-    "/redefinir-senha",
-  );
-
-  redirectUrl.searchParams.set(
-    "recovery",
-    "1",
-  );
 
   const { error } =
     await supabase.auth
