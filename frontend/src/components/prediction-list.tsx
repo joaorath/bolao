@@ -753,6 +753,9 @@ function PredictionEditor({
 
             <MatchStatusBadge
               status={match.status}
+              deadlineReached={
+                deadlineReached
+              }
             />
           </div>
 
@@ -1113,11 +1116,20 @@ function TeamName({
 
 function MatchStatusBadge({
   status,
+  deadlineReached,
 }: {
   status: MatchStatus;
+  deadlineReached: boolean;
 }) {
+  const closedByDeadline =
+    deadlineReached &&
+    (
+      status === "OPEN" ||
+      status === "SCHEDULED"
+    );
+
   const labels: Record<
-    string,
+    MatchStatus,
     string
   > = {
     OPEN: "ABERTO",
@@ -1130,7 +1142,7 @@ function MatchStatusBadge({
   };
 
   const styles: Record<
-    string,
+    MatchStatus,
     string
   > = {
     OPEN:
@@ -1149,14 +1161,22 @@ function MatchStatusBadge({
       "bg-red-400/10 text-red-300",
   };
 
+  const label =
+    closedByDeadline
+      ? "PALPITES ENCERRADOS"
+      : labels[status];
+
+  const style =
+    closedByDeadline
+      ? "bg-amber-400/10 text-amber-300"
+      : styles[status];
+
   return (
     <span
-      className={`rounded-full px-2 py-1 text-[10px] font-bold ${
-        styles[status] ??
-        "bg-slate-500/10 text-slate-400"
-      }`}
+      aria-label={`Status da partida: ${label}`}
+      className={`rounded-full px-2 py-1 text-[10px] font-bold ${style}`}
     >
-      {labels[status] ?? status}
+      {label}
     </span>
   );
 }

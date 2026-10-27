@@ -979,16 +979,18 @@ function RankingRow({
       </strong>
 
       <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <strong className="min-w-0 truncate transition group-hover:text-lime-300">
-            {entry.userName}
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="flex min-w-0 max-w-full items-center gap-1.5">
+            <strong className="min-w-0 truncate transition group-hover:text-lime-300">
+              {entry.userName}
+            </strong>
 
             {entry.isCurrentUser && (
-              <span className="ml-1 text-lime-400">
-                (você)
+              <span className="shrink-0 rounded-full bg-lime-400/15 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-lime-400 sm:text-[10px]">
+                Você
               </span>
             )}
-          </strong>
+          </div>
 
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-700 bg-slate-950/50 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wider text-slate-400 transition group-hover:border-lime-400/50 group-hover:bg-lime-400/10 group-hover:text-lime-300 sm:text-[10px]">
             <svg
