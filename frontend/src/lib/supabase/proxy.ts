@@ -120,6 +120,18 @@ export async function updateSession(
   const pathname =
     request.nextUrl.pathname;
 
+  const isPublicMetadataRoute =
+    pathname === "/robots.txt" ||
+    pathname ===
+      "/manifest.webmanifest" ||
+    pathname === "/icon.png" ||
+    pathname.startsWith(
+      "/opengraph-image",
+    ) ||
+    pathname.startsWith(
+      "/twitter-image",
+    );
+
   const isPublicAuthRoute =
     pathname === "/" ||
     pathname === "/login" ||
