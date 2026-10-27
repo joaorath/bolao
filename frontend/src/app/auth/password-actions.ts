@@ -26,21 +26,6 @@ function getText(
     : "";
 }
 
-function getApplicationUrl() {
-  if (
-    process.env.NODE_ENV ===
-    "production"
-  ) {
-    return "https://charqueons-league.netlify.app";
-  }
-
-  return (
-    process.env
-      .NEXT_PUBLIC_SITE_URL ??
-    "http://localhost:3000"
-  ).replace(/\/+$/, "");
-}
-
 function errorResult(
   message: string,
   invalidFields: string[] = [],
@@ -60,6 +45,14 @@ function successResult(
     invalidFields: [],
     success: true,
   };
+}
+
+function isValidEmail(
+  email: string,
+) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+    email,
+  );
 }
 
 function getPasswordUpdateErrorMessage(
@@ -112,7 +105,7 @@ function getPasswordUpdateErrorMessage(
       "refresh_token_not_found" ||
     error.code === "bad_jwt"
   ) {
-    return "Sua sessão de recuperação expirou. Solicite um novo link.";
+    return "Sua sessão de recuperação expirou. Solicite um novo código.";
   }
 
   return "Não foi possível atualizar sua senha. Tente novamente.";
@@ -133,11 +126,7 @@ export async function requestPasswordReset(
     );
   }
 
-  if (
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-      email,
-    )
-  ) {
+  if (!isValidEmail(email)) {
     return errorResult(
       "Informe um endereço de e-mail válido.",
       ["email"],
@@ -147,27 +136,22 @@ export async function requestPasswordReset(
   const cookieStore =
     await cookies();
 
-    cookieStore.delete(
+  cookieStore.delete(
     RECOVERY_COOKIE,
-    );
+  );
 
   const supabase =
     await createClient();
 
-  const redirectUrl =
-    new URL(
-        "/auth/recovery",
-        getApplicationUrl(),
-    );
-
+  /*
+   * O e-mail utilizará {{ .Token }}.
+   * Portanto, não precisamos mais transportar
+   * um token descartável dentro de um link.
+   */
   const { error } =
     await supabase.auth
       .resetPasswordForEmail(
         email,
-        {
-          redirectTo:
-            redirectUrl.toString(),
-        },
       );
 
   if (error) {
@@ -182,11 +166,124 @@ export async function requestPasswordReset(
   }
 
   /*
-   * A mensagem é sempre igual para impedir
-   * a descoberta de quais e-mails possuem conta.
+   * A mensagem é sempre igual para não revelar
+   * quais endereços possuem uma conta.
    */
   return successResult(
-    "Se existir uma conta com esse e-mail, enviaremos um link para redefinir a senha. Verifique também a caixa de spam.",
+    "Se existir uma conta com esse e-mail, enviaremos um código de recuperação. Verifique também a caixa de spam.",
+  );
+}
+
+export async function verifyPasswordRecoveryCode(
+  formData: FormData,
+): Promise<AuthActionResult> {
+  const email = getText(
+    formData,
+    "email",
+  ).toLowerCase();
+
+  const token = getText(
+    formData,
+    "token",
+  ).replace(/\s+/g, "");
+
+  if (!email) {
+    return errorResult(
+      "Informe o e-mail que recebeu o código.",
+      ["email"],
+    );
+  }
+
+  if (!isValidEmail(email)) {
+    return errorResult(
+      "Informe um endereço de e-mail válido.",
+      ["email"],
+    );
+  }
+
+  if (!token) {
+    return errorResult(
+      "Informe o código recebido por e-mail.",
+      ["token"],
+    );
+  }
+
+  if (!/^\d{6}$/.test(token)) {
+    return errorResult(
+      "O código deve possuir 6 números.",
+      ["token"],
+    );
+  }
+
+  const cookieStore =
+    await cookies();
+
+  cookieStore.delete(
+    RECOVERY_COOKIE,
+  );
+
+  const supabase =
+    await createClient();
+
+  const {
+    data,
+    error,
+  } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "recovery",
+  });
+
+  if (
+    error ||
+    !data.user
+  ) {
+    console.error(
+      "Erro ao verificar código de recuperação:",
+      {
+        message:
+          error?.message ??
+          "Usuário não retornado.",
+        status:
+          error?.status,
+        code:
+          error?.code,
+      },
+    );
+
+    if (
+      error?.status === 429 ||
+      error?.code ===
+        "over_request_rate_limit"
+    ) {
+      return errorResult(
+        "Muitas tentativas foram realizadas. Aguarde alguns minutos e tente novamente.",
+        ["token"],
+      );
+    }
+
+    return errorResult(
+      "O código é inválido, já foi utilizado ou expirou. Solicite um novo código.",
+      ["token"],
+    );
+  }
+
+  cookieStore.set(
+    RECOVERY_COOKIE,
+    data.user.id,
+    {
+      httpOnly: true,
+      sameSite: "lax",
+      secure:
+        process.env.NODE_ENV ===
+        "production",
+      path: "/",
+      maxAge: 15 * 60,
+    },
+  );
+
+  redirect(
+    "/redefinir-senha",
   );
 }
 
@@ -259,7 +356,7 @@ export async function updateRecoveredPassword(
 
   if (!recoveryUserId) {
     return errorResult(
-      "O link de recuperação é inválido ou expirou. Solicite um novo link.",
+      "A autorização de recuperação é inválida ou expirou. Solicite um novo código.",
     );
   }
 
@@ -280,14 +377,10 @@ export async function updateRecoveredPassword(
     );
 
     return errorResult(
-      "Sua sessão de recuperação expirou. Solicite um novo link.",
+      "Sua sessão de recuperação expirou. Solicite um novo código.",
     );
   }
 
-  /*
-   * Impede que uma sessão que já estava aberta
-   * altere a senha de uma conta diferente.
-   */
   if (
     user.id !==
     recoveryUserId
@@ -306,7 +399,7 @@ export async function updateRecoveredPassword(
     );
 
     return errorResult(
-      "A conta autenticada não corresponde ao link de recuperação. Solicite um novo link.",
+      "A conta autenticada não corresponde à recuperação solicitada. Solicite um novo código.",
     );
   }
 
