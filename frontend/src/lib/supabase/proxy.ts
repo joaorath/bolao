@@ -126,6 +126,9 @@ export async function updateSession(
       "/manifest.webmanifest" ||
     pathname === "/icon.png" ||
     pathname.startsWith(
+      "/brand/",
+    ) ||
+    pathname.startsWith(
       "/opengraph-image",
     ) ||
     pathname.startsWith(

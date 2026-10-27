@@ -105,6 +105,12 @@ export const metadata: Metadata = {
       SITE_NAME,
     description:
       SITE_DESCRIPTION,
+    images: [
+      {
+        url: "/brand/charqueons-league-square.png?v=2",
+        alt: "Logo da Charqueons League",
+      },
+    ],
   },
 
   twitter: {
@@ -114,6 +120,9 @@ export const metadata: Metadata = {
       SITE_NAME,
     description:
       SITE_DESCRIPTION,
+    images: [
+      "/brand/charqueons-league-square.png?v=2",
+    ],
   },
 
   robots: {
