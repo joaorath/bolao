@@ -621,6 +621,11 @@ function SidebarLink({
   return (
     <Link
       href={href}
+      aria-current={
+        active
+          ? "page"
+          : undefined
+      }
       className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
         active
           ? "bg-slate-800 text-white shadow-[inset_3px_0_0_#a3e635]"
@@ -628,6 +633,7 @@ function SidebarLink({
       }`}
     >
       <span
+        aria-hidden="true"
         className={
           isLiveItem
             ? "text-red-500"
@@ -641,11 +647,23 @@ function SidebarLink({
 
       {isLiveItem &&
         liveMatchesCount > 0 && (
-          <span className="ml-auto min-w-6 rounded-full bg-red-500 px-2 py-0.5 text-center text-[10px] text-white">
-            {liveMatchesCount > 99
-              ? "99+"
-              : liveMatchesCount}
-          </span>
+          <>
+            <span
+              aria-hidden="true"
+              className="ml-auto min-w-6 rounded-full bg-red-500 px-2 py-0.5 text-center text-[10px] text-white"
+            >
+              {liveMatchesCount > 99
+                ? "99+"
+                : liveMatchesCount}
+            </span>
+
+            <span className="sr-only">
+              {liveMatchesCount}{" "}
+              {liveMatchesCount === 1
+                ? "partida ao vivo"
+                : "partidas ao vivo"}
+            </span>
+          </>
         )}
     </Link>
   );
@@ -662,6 +680,7 @@ export function MobileNavigation() {
 
   return (
     <nav
+      aria-label="Navegação principal para dispositivos móveis"
       className={`fixed inset-x-0 bottom-0 z-50 grid h-20 border-t border-slate-800 bg-[#091a28]/95 backdrop-blur lg:hidden ${
         isAdmin
           ? "grid-cols-6"
@@ -697,13 +716,19 @@ function MobileLink({
   return (
     <Link
       href={href}
-      className={`relative flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-[9px] font-bold sm:text-[10px] ${
+      aria-current={
+        active
+          ? "page"
+          : undefined
+      }
+      className={`relative flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-[10px] font-bold transition sm:text-xs ${
         active
           ? "text-lime-400"
-          : "text-slate-500"
+          : "text-slate-400 hover:text-white"
       }`}
     >
       <span
+        aria-hidden="true"
         className={`relative text-lg ${
           isLiveItem
             ? "text-red-500"
@@ -725,6 +750,16 @@ function MobileLink({
       <span className="max-w-full truncate">
         {mobileLabel ?? label}
       </span>
+
+      {isLiveItem &&
+        liveMatchesCount > 0 && (
+          <span className="sr-only">
+            {liveMatchesCount}{" "}
+            {liveMatchesCount === 1
+              ? "partida ao vivo"
+              : "partidas ao vivo"}
+          </span>
+        )}
     </Link>
   );
 }
