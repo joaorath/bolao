@@ -816,7 +816,11 @@ function PredictionEditor({
       </div>
 
       <div className="mt-5 flex flex-col gap-3 border-t border-slate-800 pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm">
+        <div
+          aria-live="polite"
+          aria-atomic="true"
+          className="min-w-0 text-sm"
+        >
           {predictionEvaluation &&
           savedPrediction ? (
             <PredictionEvaluationMessage
@@ -1081,7 +1085,7 @@ function ScoreInput({
           event.target.value,
         )
       }
-      className="h-12 w-14 rounded-xl border border-slate-700 bg-slate-950 text-center text-lg font-extrabold outline-none transition focus:border-lime-400 disabled:cursor-not-allowed disabled:opacity-50"
+      className="h-12 w-14 rounded-xl border border-slate-600 bg-[#071421] text-center text-lg font-extrabold text-white outline-none transition focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20 disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-900 disabled:text-slate-200 disabled:opacity-100"
     />
   );
 }
