@@ -32,53 +32,40 @@ export default async function ResetPasswordPage({
   const params =
     await searchParams;
 
-  /*
-   * Proteção para links antigos ou modelos de
-   * e-mail configurados com o caminho errado.
-   *
-   * Se o token chegar diretamente nesta página,
-   * ele é encaminhado para o callback correto.
-   */
-  if (
-    params.token_hash ||
-    params.code
-  ) {
-    const callbackParams =
-      new URLSearchParams();
-
+   /*
+    * Corrige automaticamente links antigos
+    * que tenham enviado o token diretamente
+    * para esta página.
+    */
     if (params.token_hash) {
-      callbackParams.set(
-        "token_hash",
-        params.token_hash,
-      );
+        const recoveryParams =
+            new URLSearchParams({
+            token_hash:
+                params.token_hash,
+            });
 
-      callbackParams.set(
-        "type",
-        "recovery",
-      );
+        redirect(
+            `/auth/recovery?${recoveryParams.toString()}`,
+        );
     }
 
+    /*
+    * Compatibilidade temporária com links
+    * antigos baseados em PKCE.
+    */
     if (params.code) {
-      callbackParams.set(
-        "code",
-        params.code,
-      );
+        const confirmParams =
+            new URLSearchParams({
+                code: params.code,
+                next:
+                    "/redefinir-senha",
+                recovery: "1",
+            });
+
+        redirect(
+            `/auth/confirm?${confirmParams.toString()}`,
+        );
     }
-
-    callbackParams.set(
-      "next",
-      "/redefinir-senha",
-    );
-
-    callbackParams.set(
-      "recovery",
-      "1",
-    );
-
-    redirect(
-      `/auth/confirm?${callbackParams.toString()}`,
-    );
-  }
 
   const cookieStore =
     await cookies();
