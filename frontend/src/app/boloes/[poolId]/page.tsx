@@ -168,7 +168,7 @@ export default function PoolDetailsPage() {
               away_team_name,
               away_team_abbreviation,
               away_team_color,
-              away_team_logo_url,
+              away_team_logo_url
             )
           )
         `)
