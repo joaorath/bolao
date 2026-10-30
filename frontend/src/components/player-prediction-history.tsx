@@ -8,6 +8,9 @@ import {
 } from "react";
 
 import { createClient } from "@/lib/supabase/client";
+import {
+  TeamIdentity,
+} from "@/components/team-identity";
 
 type PredictionResult =
   | "EXACT"
@@ -25,8 +28,10 @@ type PredictionHistoryEntry = {
   match_status: string;
   home_team_name: string;
   home_team_abbreviation: string;
+  home_team_logo_url: string | null;
   away_team_name: string;
   away_team_abbreviation: string;
+  away_team_logo_url: string | null;
   prediction_home_score: number;
   prediction_away_score: number;
   official_home_score: number | null;
@@ -34,6 +39,12 @@ type PredictionHistoryEntry = {
   prediction_result: PredictionResult;
   prediction_points: number;
   is_provisional: boolean;
+};
+
+type DatabaseMatchLogos = {
+  id: string;
+  home_team_logo_url: string | null;
+  away_team_logo_url: string | null;
 };
 
 type PlayerPredictionHistoryProps = {
@@ -100,46 +111,113 @@ export function PlayerPredictionHistory({
         return;
       }
 
-      const loadedEntries = [
-        ...(
-            (data ??
-            []) as PredictionHistoryEntry[]
-        ),
-        ].sort(
-        (
-            firstEntry,
-            secondEntry,
-        ) => {
-            const roundDifference =
-            firstEntry.round -
-            secondEntry.round;
+      const historyEntries =
+  (data ??
+    []) as PredictionHistoryEntry[];
 
-            if (
-            roundDifference !== 0
-            ) {
-            return roundDifference;
-            }
+const matchIds = Array.from(
+  new Set(
+    historyEntries.map(
+      (entry) => entry.match_id,
+    ),
+  ),
+);
 
-            const dateDifference =
-            new Date(
-                firstEntry.starts_at,
-            ).getTime() -
-            new Date(
-                secondEntry.starts_at,
-            ).getTime();
+const logosByMatchId =
+  new Map<
+    string,
+    DatabaseMatchLogos
+  >();
 
-            if (
-            dateDifference !== 0
-            ) {
-            return dateDifference;
-            }
+if (matchIds.length > 0) {
+  const {
+    data: logoRows,
+    error: logosError,
+  } = await supabase
+    .from("matches")
+    .select(`
+      id,
+      home_team_logo_url,
+      away_team_logo_url
+    `)
+    .in("id", matchIds);
 
-            return firstEntry.match_id.localeCompare(
-            secondEntry.match_id,
-            "pt-BR",
+  if (logosError) {
+    console.error(
+      "Erro ao carregar escudos dos times:",
+      logosError,
+    );
+  } else {
+    for (
+      const row of
+      (
+        logoRows ??
+        []
+      ) as DatabaseMatchLogos[]
+    ) {
+      logosByMatchId.set(
+        row.id,
+        row,
+      );
+    }
+  }
+}
+
+      const loadedEntries =
+          historyEntries
+            .map((entry) => {
+              const matchLogos =
+                logosByMatchId.get(
+                  entry.match_id,
+                );
+
+              return {
+                ...entry,
+                home_team_logo_url:
+                  matchLogos
+                    ?.home_team_logo_url ??
+                  null,
+                away_team_logo_url:
+                  matchLogos
+                    ?.away_team_logo_url ??
+                  null,
+              };
+            })
+            .sort(
+              (
+                firstEntry,
+                secondEntry,
+              ) => {
+                const roundDifference =
+                  firstEntry.round -
+                  secondEntry.round;
+
+                if (
+                  roundDifference !== 0
+                ) {
+                  return roundDifference;
+                }
+
+                const dateDifference =
+                  new Date(
+                    firstEntry.starts_at,
+                  ).getTime() -
+                  new Date(
+                    secondEntry.starts_at,
+                  ).getTime();
+
+                if (
+                  dateDifference !== 0
+                ) {
+                  return dateDifference;
+                }
+
+                return firstEntry.match_id.localeCompare(
+                  secondEntry.match_id,
+                  "pt-BR",
+                );
+              },
             );
-        },
-        );
 
         setEntries(loadedEntries);
 
@@ -449,18 +527,16 @@ function PredictionCard({
 
       <div className="p-4 sm:p-5">
         <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-          <div className="min-w-0">
-            <strong className="block truncate">
-              {entry.home_team_name}
-            </strong>
-
-            <span className="text-xs text-slate-500">
-              {
-                entry
-                  .home_team_abbreviation
-              }
-            </span>
-          </div>
+          <TeamIdentity
+            abbreviation={
+              entry.home_team_abbreviation
+            }
+            name={entry.home_team_name}
+            logoUrl={
+              entry.home_team_logo_url ??
+              undefined
+            }
+          />
 
           <div className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-center">
             {officialScoreAvailable ? (
@@ -486,18 +562,17 @@ function PredictionCard({
             </span>
           </div>
 
-          <div className="min-w-0 text-right">
-            <strong className="block truncate">
-              {entry.away_team_name}
-            </strong>
-
-            <span className="text-xs text-slate-500">
-              {
-                entry
-                  .away_team_abbreviation
-              }
-            </span>
-          </div>
+          <TeamIdentity
+            abbreviation={
+              entry.away_team_abbreviation
+            }
+            name={entry.away_team_name}
+            logoUrl={
+              entry.away_team_logo_url ??
+              undefined
+            }
+            align="right"
+          />
         </div>
 
         <div className="mt-5 flex flex-col gap-3 rounded-xl bg-slate-950/40 p-4 sm:flex-row sm:items-center sm:justify-between">
