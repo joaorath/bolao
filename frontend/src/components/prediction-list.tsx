@@ -7,6 +7,9 @@ import {
 } from "react";
 
 import { createClient } from "@/lib/supabase/client";
+import {
+  TeamIdentity,
+} from "@/components/team-identity";
 
 import type {
   Match,
@@ -38,9 +41,11 @@ type DatabaseMatch = {
   home_team_name: string;
   home_team_abbreviation: string;
   home_team_color: string;
+  home_team_logo_url: string | null;
   away_team_name: string;
   away_team_abbreviation: string;
   away_team_color: string;
+  away_team_logo_url: string | null;
 };
 
 type DatabasePoolMatch = {
@@ -132,9 +137,11 @@ export function PredictionList({
               home_team_name,
               home_team_abbreviation,
               home_team_color,
+              home_team_logo_url,
               away_team_name,
               away_team_abbreviation,
-              away_team_color
+              away_team_color,
+              away_team_logo_url
             )
           `)
           .eq("pool_id", poolId),
@@ -224,6 +231,10 @@ export function PredictionList({
             primaryColor:
               databaseMatch.home_team_color,
             secondaryColor: "#ffffff",
+            logoUrl:
+              databaseMatch
+                .home_team_logo_url ??
+              undefined,
           },
           awayTeam: {
             id: `${databaseMatch.id}-away`,
@@ -235,6 +246,10 @@ export function PredictionList({
             primaryColor:
               databaseMatch.away_team_color,
             secondaryColor: "#ffffff",
+            logoUrl:
+              databaseMatch
+                .away_team_logo_url ??
+              undefined,
           },
         });
       }
@@ -766,13 +781,16 @@ function PredictionEditor({
         </div>
 
         <div className="grid w-full grid-cols-[minmax(0,1fr)_56px_auto_56px_minmax(0,1fr)] items-center gap-2 md:w-auto md:gap-3">
-          <TeamName
+          <TeamIdentity
             abbreviation={
               match.homeTeam
                 .abbreviation
             }
             name={
               match.homeTeam.name
+            }
+            logoUrl={
+              match.homeTeam.logoUrl
             }
           />
 
@@ -802,13 +820,16 @@ function PredictionEditor({
             }
           />
 
-          <TeamName
+          <TeamIdentity
             abbreviation={
               match.awayTeam
                 .abbreviation
             }
             name={
               match.awayTeam.name
+            }
+            logoUrl={
+              match.awayTeam.logoUrl
             }
             align="right"
           />
@@ -1087,34 +1108,6 @@ function ScoreInput({
       }
       className="h-12 w-14 rounded-xl border border-slate-600 bg-[#071421] text-center text-lg font-extrabold text-white outline-none transition focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20 disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-900 disabled:text-slate-200 disabled:opacity-100"
     />
-  );
-}
-
-function TeamName({
-  abbreviation,
-  name,
-  align = "left",
-}: {
-  abbreviation: string;
-  name: string;
-  align?: "left" | "right";
-}) {
-  return (
-    <div
-      className={`min-w-0 ${
-        align === "right"
-          ? "text-right"
-          : "text-left"
-      }`}
-    >
-      <strong className="block">
-        {abbreviation}
-      </strong>
-
-      <span className="mt-0.5 block truncate text-[10px] leading-tight text-slate-500 sm:text-xs">
-        {name}
-      </span>
-    </div>
   );
 }
 
