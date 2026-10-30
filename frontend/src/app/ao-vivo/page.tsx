@@ -29,9 +29,11 @@ type DatabaseLiveMatch = {
   home_team_name: string;
   home_team_abbreviation: string;
   home_team_color: string;
+  home_team_logo_url: string | null;
   away_team_name: string;
   away_team_abbreviation: string;
   away_team_color: string;
+  away_team_logo_url: string | null;
 };
 
 type DatabasePrediction = {
@@ -108,9 +110,11 @@ export default function LivePage() {
           home_team_name,
           home_team_abbreviation,
           home_team_color,
+          home_team_logo_url,
           away_team_name,
           away_team_abbreviation,
-          away_team_color
+          away_team_color,
+          away_team_logo_url
         `)
         .in("status", [
           "LIVE",
@@ -250,6 +254,10 @@ export default function LivePage() {
                     .home_team_color,
                 secondaryColor:
                   "#ffffff",
+                logoUrl:
+                  databaseMatch
+                    .home_team_logo_url ??
+                  undefined,
               },
               awayTeam: {
                 id: `${databaseMatch.id}-away`,
@@ -264,6 +272,10 @@ export default function LivePage() {
                     .away_team_color,
                 secondaryColor:
                   "#ffffff",
+                logoUrl:
+                  databaseMatch
+                    .away_team_logo_url ??
+                  undefined,
               },
             };
 

@@ -3,6 +3,10 @@ import type {
   Prediction,
 } from "@/types";
 
+import {
+  TeamIdentity,
+} from "@/components/team-identity";
+
 type LiveMatchCardProps = {
   match: Match;
   prediction?: Prediction | null;
@@ -102,13 +106,14 @@ export function LiveMatchCard({
       </p>
 
       <div className="my-7 grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-5">
-        <Team
+        <TeamIdentity
+          variant="large"
           name={match.homeTeam.name}
           abbreviation={
             match.homeTeam.abbreviation
           }
-          color={
-            match.homeTeam.primaryColor
+          logoUrl={
+            match.homeTeam.logoUrl
           }
         />
 
@@ -126,13 +131,14 @@ export function LiveMatchCard({
           </strong>
         </div>
 
-        <Team
+        <TeamIdentity
+          variant="large"
           name={match.awayTeam.name}
           abbreviation={
             match.awayTeam.abbreviation
           }
-          color={
-            match.awayTeam.primaryColor
+          logoUrl={
+            match.awayTeam.logoUrl
           }
         />
       </div>
@@ -173,32 +179,5 @@ export function LiveMatchCard({
         partida estiver em andamento.
       </p>
     </article>
-  );
-}
-
-function Team({
-  name,
-  abbreviation,
-  color,
-}: {
-  name: string;
-  abbreviation: string;
-  color: string;
-}) {
-  return (
-    <div className="min-w-0 text-center">
-      <div
-        className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-sm font-extrabold sm:h-16 sm:w-16 sm:text-lg"
-        style={{
-          backgroundColor: color,
-        }}
-      >
-        {abbreviation}
-      </div>
-
-      <strong className="mt-3 block truncate text-xs sm:text-base">
-        {name}
-      </strong>
-    </div>
   );
 }

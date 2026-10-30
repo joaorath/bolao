@@ -13,6 +13,9 @@ import { PoolRanking } from "@/components/pool-ranking";
 import { PoolResultsManager } from "@/components/pool-results-manager";
 import { PredictionList } from "@/components/prediction-list";
 import { createClient } from "@/lib/supabase/client";
+import {
+  TeamIdentity,
+} from "@/components/team-identity";
 
 import type {
   Match,
@@ -50,9 +53,11 @@ type DatabaseMatch = {
   home_team_name: string;
   home_team_abbreviation: string;
   home_team_color: string;
+  home_team_logo_url: string | null;
   away_team_name: string;
   away_team_abbreviation: string;
   away_team_color: string;
+  away_team_logo_url: string | null;
 };
 
 type DatabasePoolMatch = {
@@ -159,9 +164,11 @@ export default function PoolDetailsPage() {
               home_team_name,
               home_team_abbreviation,
               home_team_color,
+              home_team_logo_url,
               away_team_name,
               away_team_abbreviation,
-              away_team_color
+              away_team_color,
+              away_team_logo_url,
             )
           )
         `)
@@ -317,6 +324,10 @@ export default function PoolDetailsPage() {
             primaryColor:
               relatedMatch.home_team_color,
             secondaryColor: "#ffffff",
+            logoUrl:
+              relatedMatch
+                .home_team_logo_url ??
+              undefined,
           },
           awayTeam: {
             id: `${relatedMatch.id}-away`,
@@ -328,6 +339,10 @@ export default function PoolDetailsPage() {
             primaryColor:
               relatedMatch.away_team_color,
             secondaryColor: "#ffffff",
+            logoUrl:
+              relatedMatch
+                .away_team_logo_url ??
+              undefined,
           },
         });
       }
@@ -624,13 +639,19 @@ function OverviewTab({
             </h2>
 
             <div className="mt-7 grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-5">
-              <Team
+              <TeamIdentity
+                variant="large"
                 abbreviation={
                   featuredMatch.homeTeam
                     .abbreviation
                 }
                 name={
-                  featuredMatch.homeTeam.name
+                  featuredMatch.homeTeam
+                    .name
+                }
+                logoUrl={
+                  featuredMatch.homeTeam
+                    .logoUrl
                 }
               />
 
@@ -642,13 +663,19 @@ function OverviewTab({
                   "-"}
               </div>
 
-              <Team
+              <TeamIdentity
+                variant="large"
                 abbreviation={
                   featuredMatch.awayTeam
                     .abbreviation
                 }
                 name={
-                  featuredMatch.awayTeam.name
+                  featuredMatch.awayTeam
+                    .name
+                }
+                logoUrl={
+                  featuredMatch.awayTeam
+                    .logoUrl
                 }
               />
             </div>
@@ -765,52 +792,89 @@ function RoundsTab({
               .map((match) => (
                 <div
                   key={match.id}
-                  className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-[#0e2131] p-5 sm:flex-row sm:items-center sm:justify-between"
+                  className="rounded-2xl border border-slate-800 bg-[#0e2131] p-4 sm:p-5"
                 >
-                  <div>
-                    <strong>
-                      {match.homeTeam.name}
-                      {" × "}
-                      {match.awayTeam.name}
-                    </strong>
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-4">
+                    <TeamIdentity
+                      variant="compact"
+                      abbreviation={
+                        match.homeTeam
+                          .abbreviation
+                      }
+                      name={
+                        match.homeTeam.name
+                      }
+                      logoUrl={
+                        match.homeTeam.logoUrl
+                      }
+                    />
 
-                    <p className="mt-1 text-sm text-slate-500">
-                      {match.stadium}
-                    </p>
-
-                    {match.status ===
-                      "FINISHED" &&
-                      match.homeScore !==
+                    <strong
+                      aria-label={
+                        match.homeScore !==
+                          undefined &&
+                        match.awayScore !==
+                          undefined
+                          ? `Placar ${match.homeScore} a ${match.awayScore}`
+                          : "Placar ainda não disponível"
+                      }
+                      className="rounded-xl bg-slate-950 px-3 py-2 text-center text-sm text-lime-400 sm:text-base"
+                    >
+                      {match.homeScore !==
                         undefined &&
                       match.awayScore !==
-                        undefined && (
-                        <strong className="mt-2 block text-lime-400">
+                        undefined ? (
+                        <>
                           {match.homeScore}
                           {" × "}
                           {match.awayScore}
-                        </strong>
+                        </>
+                      ) : (
+                        "- × -"
                       )}
+                    </strong>
+
+                    <TeamIdentity
+                      variant="compact"
+                      abbreviation={
+                        match.awayTeam
+                          .abbreviation
+                      }
+                      name={
+                        match.awayTeam.name
+                      }
+                      logoUrl={
+                        match.awayTeam.logoUrl
+                      }
+                      align="right"
+                    />
                   </div>
 
-                  <span
-                    className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${
-                      match.status ===
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 pt-3">
+                    <p className="text-xs text-slate-500 sm:text-sm">
+                      {match.stadium}
+                    </p>
+
+                    <span
+                      className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${
+                        match.status ===
+                        "FINISHED"
+                          ? "bg-slate-500/10 text-slate-400"
+                          : match.status ===
+                              "LIVE"
+                            ? "bg-red-400/10 text-red-400"
+                            : "bg-emerald-400/10 text-emerald-400"
+                      }`}
+                    >
+                      {match.status ===
                       "FINISHED"
-                        ? "bg-slate-500/10 text-slate-400"
+                        ? "ENCERRADO"
                         : match.status ===
                             "LIVE"
-                          ? "bg-red-400/10 text-red-400"
-                          : "bg-emerald-400/10 text-emerald-400"
-                    }`}
-                  >
-                    {match.status ===
-                    "FINISHED"
-                      ? "ENCERRADO"
-                      : match.status ===
-                          "LIVE"
-                        ? "AO VIVO"
-                        : "PALPITES ABERTOS"}
-                  </span>
+                          ? "AO VIVO"
+                          : "PALPITES ABERTOS"}
+                    </span>
+                  </div>
                 </div>
               ))}
           </div>
@@ -835,26 +899,6 @@ function SummaryCard({
 
       <strong className="mt-2 block text-xl sm:text-2xl">
         {value}
-      </strong>
-    </div>
-  );
-}
-
-function Team({
-  abbreviation,
-  name,
-}: {
-  abbreviation: string;
-  name: string;
-}) {
-  return (
-    <div className="min-w-0 text-center">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-800 text-sm font-extrabold sm:h-14 sm:w-14">
-        {abbreviation}
-      </div>
-
-      <strong className="mt-2 block truncate text-xs sm:text-base">
-        {name}
       </strong>
     </div>
   );
