@@ -16,7 +16,8 @@ type PredictionResult =
   | "EXACT"
   | "RESULT"
   | "WRONG"
-  | "PENDING";
+  | "PENDING"
+  | "MISSED";
 
 type PredictionHistoryEntry = {
   user_id: string;
@@ -293,6 +294,12 @@ if (matchIds.length > 0) {
           "WRONG",
       ).length,
 
+      missed: entries.filter(
+        (entry) =>
+          entry.prediction_result ===
+          "MISSED",
+      ).length,
+
       points: entries.reduce(
         (
           total,
@@ -355,7 +362,7 @@ if (matchIds.length > 0) {
 
           {status === "success" &&
             entries.length > 0 && (
-              <div className="mt-5 grid grid-cols-4 gap-2">
+              <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-5">
                 <SummaryCard
                   label="Exatos"
                   value={summary.exact}
@@ -372,6 +379,12 @@ if (matchIds.length > 0) {
                   label="Erros"
                   value={summary.wrong}
                   color="red"
+                />
+
+                <SummaryCard
+                  label="Não enviados"
+                  value={summary.missed}
+                  color="slate"
                 />
 
                 <SummaryCard
@@ -581,17 +594,24 @@ function PredictionCard({
               Palpite de {userName}
             </span>
 
-            <strong className="mt-1 block text-xl">
-              {
-                entry
-                  .prediction_home_score
-              }
-              {" × "}
-              {
-                entry
-                  .prediction_away_score
-              }
-            </strong>
+            {entry.prediction_result ===
+            "MISSED" ? (
+              <strong className="mt-1 block text-base text-slate-300">
+                Não palpitou
+              </strong>
+            ) : (
+              <strong className="mt-1 block text-xl">
+                {
+                  entry
+                    .prediction_home_score
+                }
+                {" × "}
+                {
+                  entry
+                    .prediction_away_score
+                }
+              </strong>
+            )}
           </div>
 
           <div className="sm:text-right">
@@ -616,6 +636,20 @@ function PredictionCard({
 function getEvaluation(
   entry: PredictionHistoryEntry,
 ) {
+  if (
+    entry.prediction_result ===
+    "MISSED"
+  ) {
+    return {
+      label: "Não palpitou",
+      pointsLabel: "0 pontos",
+      textStyle:
+        "text-slate-300",
+      cardStyle:
+        "border-slate-600 bg-slate-800/20",
+    };
+  }
+
   if (
     entry.prediction_result ===
     "EXACT"
@@ -730,6 +764,7 @@ function SummaryCard({
     | "emerald"
     | "amber"
     | "red"
+    | "slate"
     | "lime";
 }) {
   const styles = {
@@ -739,6 +774,8 @@ function SummaryCard({
       "border-amber-400/30 bg-amber-400/10 text-amber-300",
     red:
       "border-red-400/30 bg-red-400/10 text-red-300",
+    slate:
+      "border-slate-500/30 bg-slate-500/10 text-slate-300",
     lime:
       "border-lime-400/30 bg-lime-400/10 text-lime-300",
   };

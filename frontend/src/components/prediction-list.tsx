@@ -751,6 +751,22 @@ function PredictionEditor({
       savedPrediction,
     );
 
+    const missedPrediction =
+      !savedPrediction &&
+      (
+        match.status === "LIVE" ||
+        match.status === "HALFTIME" ||
+        match.status === "FINISHED" ||
+        (
+          deadlineReached &&
+          (
+            match.status === "OPEN" ||
+            match.status ===
+              "SCHEDULED"
+          )
+        )
+      );
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -863,6 +879,14 @@ function PredictionEditor({
             >
               {feedback}
             </span>
+          ) : missedPrediction ? (
+            <span className="text-slate-300">
+              <strong>
+                Não palpitou
+              </strong>
+
+              {" · "}0 pontos
+            </span>
           ) : locked ? (
             <span className="text-amber-400">
               {getLockedMessage(
@@ -900,8 +924,10 @@ function PredictionEditor({
           }
           className="w-full rounded-xl bg-lime-400 px-5 py-2.5 text-sm font-extrabold text-slate-950 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 sm:w-auto"
         >
-          {locked
-            ? "Palpite encerrado"
+          {missedPrediction
+            ? "Não palpitou"
+            : locked
+              ? "Palpite encerrado"
             : saving
               ? "Salvando..."
               : savedPrediction
