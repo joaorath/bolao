@@ -65,6 +65,115 @@ type DatabaseMatchStatus = {
   official_away_score: number | null;
 };
 
+function getMatchOrderGroup(
+  match: Match,
+  currentTimestamp: number,
+) {
+  if (
+    match.status === "LIVE" ||
+    match.status === "HALFTIME"
+  ) {
+    return 0;
+  }
+
+  const startsAt =
+    new Date(
+      match.startsAt,
+    ).getTime();
+
+  if (
+    (
+      match.status === "OPEN" ||
+      match.status === "SCHEDULED"
+    ) &&
+    startsAt > currentTimestamp
+  ) {
+    return 1;
+  }
+
+  if (
+    match.status === "OPEN" ||
+    match.status === "SCHEDULED"
+  ) {
+    return 2;
+  }
+
+  if (match.status === "FINISHED") {
+    return 3;
+  }
+
+  return 4;
+}
+
+function comparePredictionMatches(
+  firstMatch: Match,
+  secondMatch: Match,
+  currentTimestamp: number,
+) {
+  const firstGroup =
+    getMatchOrderGroup(
+      firstMatch,
+      currentTimestamp,
+    );
+
+  const secondGroup =
+    getMatchOrderGroup(
+      secondMatch,
+      currentTimestamp,
+    );
+
+  if (firstGroup !== secondGroup) {
+    return firstGroup - secondGroup;
+  }
+
+  const firstStartsAt =
+    new Date(
+      firstMatch.startsAt,
+    ).getTime();
+
+  const secondStartsAt =
+    new Date(
+      secondMatch.startsAt,
+    ).getTime();
+
+  /*
+   * Próximas partidas aparecem em ordem
+   * cronológica. As demais aparecem da
+   * mais recente para a mais antiga.
+   */
+  if (firstGroup === 1) {
+    return (
+      firstStartsAt -
+      secondStartsAt
+    );
+  }
+
+  if (
+    firstStartsAt !==
+    secondStartsAt
+  ) {
+    return (
+      secondStartsAt -
+      firstStartsAt
+    );
+  }
+
+  if (
+    firstMatch.round !==
+    secondMatch.round
+  ) {
+    return (
+      secondMatch.round -
+      firstMatch.round
+    );
+  }
+
+  return firstMatch.id.localeCompare(
+    secondMatch.id,
+    "pt-BR",
+  );
+}
+
 export function PredictionList({
   poolId,
 }: PredictionListProps) {
@@ -254,14 +363,16 @@ export function PredictionList({
         });
       }
 
+      const currentTimestamp =
+        Date.now();
+
       loadedMatches.sort(
-        (first, second) =>
-          new Date(
-            first.startsAt,
-          ).getTime() -
-          new Date(
-            second.startsAt,
-          ).getTime(),
+        (firstMatch, secondMatch) =>
+          comparePredictionMatches(
+            firstMatch,
+            secondMatch,
+            currentTimestamp,
+          ),
       );
 
       setMatches(loadedMatches);
@@ -363,36 +474,53 @@ export function PredictionList({
           []) as DatabaseMatchStatus[];
 
       setMatches(
-        (currentMatches) =>
-          currentMatches.map(
-            (match) => {
-              const updatedMatch =
-                currentStatuses.find(
-                  (item) =>
-                    item.match_id ===
-                    match.id,
-                );
+        (currentMatches) => {
+          const updatedMatches =
+            currentMatches.map(
+              (match) => {
+                const updatedMatch =
+                  currentStatuses.find(
+                    (item) =>
+                      item.match_id ===
+                      match.id,
+                  );
 
-              if (!updatedMatch) {
-                return match;
-              }
+                if (!updatedMatch) {
+                  return match;
+                }
 
-              return {
-                ...match,
-                status:
-                  updatedMatch
-                    .status as MatchStatus,
-                homeScore:
-                  updatedMatch
-                    .official_home_score ??
-                  undefined,
-                awayScore:
-                  updatedMatch
-                    .official_away_score ??
-                  undefined,
-              };
-            },
-          ),
+                return {
+                  ...match,
+                  status:
+                    updatedMatch
+                      .status as MatchStatus,
+                  homeScore:
+                    updatedMatch
+                      .official_home_score ??
+                    undefined,
+                  awayScore:
+                    updatedMatch
+                      .official_away_score ??
+                    undefined,
+                };
+              },
+            );
+
+          const currentTimestamp =
+            Date.now();
+
+          return updatedMatches.sort(
+            (
+              firstMatch,
+              secondMatch,
+            ) =>
+              comparePredictionMatches(
+                firstMatch,
+                secondMatch,
+                currentTimestamp,
+              ),
+          );
+        },
       );
     }
 

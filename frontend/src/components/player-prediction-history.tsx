@@ -190,31 +190,27 @@ if (matchIds.length > 0) {
                 secondEntry,
               ) => {
                 const roundDifference =
-                  firstEntry.round -
-                  secondEntry.round;
+                  secondEntry.round -
+                  firstEntry.round;
 
-                if (
-                  roundDifference !== 0
-                ) {
+                if (roundDifference !== 0) {
                   return roundDifference;
                 }
 
                 const dateDifference =
                   new Date(
-                    firstEntry.starts_at,
+                    secondEntry.starts_at,
                   ).getTime() -
                   new Date(
-                    secondEntry.starts_at,
+                    firstEntry.starts_at,
                   ).getTime();
 
-                if (
-                  dateDifference !== 0
-                ) {
+                if (dateDifference !== 0) {
                   return dateDifference;
                 }
 
-                return firstEntry.match_id.localeCompare(
-                  secondEntry.match_id,
+                return secondEntry.match_id.localeCompare(
+                  firstEntry.match_id,
                   "pt-BR",
                 );
               },
