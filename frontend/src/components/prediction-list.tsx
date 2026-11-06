@@ -879,6 +879,13 @@ function PredictionEditor({
       savedPrediction,
     );
 
+  const finished =
+    match.status === "FINISHED";
+
+  const officialScoreAvailable =
+    match.homeScore !== undefined &&
+    match.awayScore !== undefined;
+
     const missedPrediction =
       !savedPrediction &&
       (
@@ -924,60 +931,109 @@ function PredictionEditor({
           </p>
         </div>
 
-        <div className="grid w-full grid-cols-[minmax(0,1fr)_56px_auto_56px_minmax(0,1fr)] items-center gap-2 md:w-auto md:gap-3">
-          <TeamIdentity
-            abbreviation={
-              match.homeTeam
-                .abbreviation
-            }
-            name={
-              match.homeTeam.name
-            }
-            logoUrl={
-              match.homeTeam.logoUrl
-            }
-          />
+        {finished ? (
+          <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 md:w-auto md:min-w-[430px] md:gap-5">
+            <TeamIdentity
+              abbreviation={
+                match.homeTeam
+                  .abbreviation
+              }
+              name={
+                match.homeTeam.name
+              }
+              logoUrl={
+                match.homeTeam.logoUrl
+              }
+            />
 
-          <ScoreInput
-            label={`Placar do ${match.homeTeam.name}`}
-            value={homeScore}
-            disabled={
-              locked || saving
-            }
-            onChange={
-              setHomeScore
-            }
-          />
+            <div className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-center">
+              {officialScoreAvailable ? (
+                <strong className="whitespace-nowrap text-xl text-white">
+                  {match.homeScore}
+                  {" × "}
+                  {match.awayScore}
+                </strong>
+              ) : (
+                <strong className="text-slate-500">
+                  ×
+                </strong>
+              )}
 
-          <span className="font-extrabold text-slate-500">
-            ×
-          </span>
+              <span className="mt-1 block text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                Placar final
+              </span>
+            </div>
 
-          <ScoreInput
-            label={`Placar do ${match.awayTeam.name}`}
-            value={awayScore}
-            disabled={
-              locked || saving
-            }
-            onChange={
-              setAwayScore
-            }
-          />
+            <TeamIdentity
+              abbreviation={
+                match.awayTeam
+                  .abbreviation
+              }
+              name={
+                match.awayTeam.name
+              }
+              logoUrl={
+                match.awayTeam.logoUrl
+              }
+              align="right"
+            />
+          </div>
+        ) : (
+          <div className="grid w-full grid-cols-[minmax(0,1fr)_56px_auto_56px_minmax(0,1fr)] items-center gap-2 md:w-auto md:gap-3">
+            <TeamIdentity
+              abbreviation={
+                match.homeTeam
+                  .abbreviation
+              }
+              name={
+                match.homeTeam.name
+              }
+              logoUrl={
+                match.homeTeam.logoUrl
+              }
+            />
 
-          <TeamIdentity
-            abbreviation={
-              match.awayTeam
-                .abbreviation
-            }
-            name={
-              match.awayTeam.name
-            }
-            logoUrl={
-              match.awayTeam.logoUrl
-            }
-            align="right"
-          />
-        </div>
+            <ScoreInput
+              label={`Placar do ${match.homeTeam.name}`}
+              value={homeScore}
+              disabled={
+                locked || saving
+              }
+              onChange={
+                setHomeScore
+              }
+            />
+
+            <span className="font-extrabold text-slate-500">
+              ×
+            </span>
+
+            <ScoreInput
+              label={`Placar do ${match.awayTeam.name}`}
+              value={awayScore}
+              disabled={
+                locked || saving
+              }
+              onChange={
+                setAwayScore
+              }
+            />
+
+            <TeamIdentity
+              abbreviation={
+                match.awayTeam
+                  .abbreviation
+              }
+              name={
+                match.awayTeam.name
+              }
+              logoUrl={
+                match.awayTeam.logoUrl
+              }
+              align="right"
+            />
+          </div>
+        )}
       </div>
 
       <div className="mt-5 flex flex-col gap-3 border-t border-slate-800 pt-4 sm:flex-row sm:items-center sm:justify-between">
@@ -1045,23 +1101,29 @@ function PredictionEditor({
           )}
         </div>
 
-        <button
-          type="submit"
-          disabled={
-            locked || saving
-          }
-          className="w-full rounded-xl bg-lime-400 px-5 py-2.5 text-sm font-extrabold text-slate-950 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 sm:w-auto"
-        >
-          {missedPrediction
-            ? "Não palpitou"
-            : locked
-              ? "Palpite encerrado"
-            : saving
-              ? "Salvando..."
-              : savedPrediction
-                ? "Atualizar palpite"
-                : "Salvar palpite"}
-        </button>
+        {finished ? (
+          <span className="w-full rounded-xl border border-slate-700 bg-slate-800/60 px-5 py-2.5 text-center text-xs font-extrabold text-slate-400 sm:w-auto">
+            PARTIDA ENCERRADA
+          </span>
+        ) : (
+          <button
+            type="submit"
+            disabled={
+              locked || saving
+            }
+            className="w-full rounded-xl bg-lime-400 px-5 py-2.5 text-sm font-extrabold text-slate-950 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 sm:w-auto"
+          >
+            {locked
+              ? missedPrediction
+                ? "Não palpitou"
+                : "Palpite encerrado"
+              : saving
+                ? "Salvando..."
+                : savedPrediction
+                  ? "Atualizar palpite"
+                  : "Salvar palpite"}
+          </button>
+        )}
       </div>
     </form>
   );
@@ -1191,6 +1253,37 @@ function PredictionEvaluationMessage({
     RESULT: "text-amber-400",
     WRONG: "text-red-400",
   };
+
+    if (
+    match.status === "FINISHED"
+  ) {
+    const finishedPointsLabel =
+      evaluation.points === 0
+        ? "0 pontos"
+        : `+${evaluation.points} pontos`;
+
+    return (
+      <span
+        className={
+          styles[evaluation.kind]
+        }
+      >
+        <strong>
+          {labels[evaluation.kind]}
+        </strong>
+
+        {" · "}Seu palpite{" "}
+        {prediction.homeScore}
+        {" × "}
+        {prediction.awayScore}
+
+        {" · "}
+        <strong>
+          {finishedPointsLabel}
+        </strong>
+      </span>
+    );
+  }
 
   const scoreLabel =
     evaluation.provisional
