@@ -204,6 +204,28 @@ export function PredictionList({
     setApplyToAllPools,
   ] = useState(true);
 
+  const [
+    currentTimestamp,
+    setCurrentTimestamp,
+  ] = useState(() =>
+    Date.now(),
+  );
+
+  useEffect(() => {
+    const interval =
+      window.setInterval(() => {
+        setCurrentTimestamp(
+          Date.now(),
+        );
+      }, 30_000);
+
+    return () => {
+      window.clearInterval(
+        interval,
+      );
+    };
+  }, []);
+
   useEffect(() => {
     async function loadData() {
       setLoading(true);
@@ -563,6 +585,115 @@ export function PredictionList({
     }));
   }
 
+  const matchesWithoutPrediction =
+    matches
+      .filter((match) => {
+        const startsAt =
+          new Date(
+            match.startsAt,
+          ).getTime();
+
+        const acceptsPredictions =
+          match.status === "OPEN" ||
+          match.status ===
+            "SCHEDULED";
+
+        return (
+          acceptsPredictions &&
+          Number.isFinite(startsAt) &&
+          startsAt >
+            currentTimestamp &&
+          !predictions[match.id]
+        );
+      })
+      .sort(
+        (firstMatch, secondMatch) =>
+          new Date(
+            firstMatch.startsAt,
+          ).getTime() -
+          new Date(
+            secondMatch.startsAt,
+          ).getTime(),
+      );
+
+  const nextMatchWithoutPrediction =
+    matchesWithoutPrediction[0];
+
+  const nextMatchTimestamp =
+    nextMatchWithoutPrediction
+      ? new Date(
+          nextMatchWithoutPrediction
+            .startsAt,
+        ).getTime()
+      : null;
+
+  const minutesUntilNextMatch =
+    nextMatchTimestamp !== null
+      ? Math.max(
+          1,
+          Math.ceil(
+            (
+              nextMatchTimestamp -
+              currentTimestamp
+            ) /
+              60_000,
+          ),
+        )
+      : null;
+
+  const urgentReminder =
+    minutesUntilNextMatch !== null &&
+    minutesUntilNextMatch <= 30;
+
+  const nextMatchDateLabel =
+    nextMatchWithoutPrediction
+      ? new Intl.DateTimeFormat(
+          "pt-BR",
+          {
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone:
+              "America/Belem",
+          },
+        ).format(
+          new Date(
+            nextMatchWithoutPrediction
+              .startsAt,
+          ),
+        )
+      : null;
+
+  function goToNextMatchWithoutPrediction() {
+    if (
+      !nextMatchWithoutPrediction
+    ) {
+      return;
+    }
+
+    const matchElement =
+      document.getElementById(
+        `prediction-${nextMatchWithoutPrediction.id}`,
+      );
+
+    matchElement?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+
+    window.setTimeout(() => {
+      const firstScoreInput =
+        matchElement?.querySelector<
+          HTMLInputElement
+        >(
+          'input[type="number"]:not(:disabled)',
+        );
+
+      firstScoreInput?.focus();
+    }, 500);
+  }
+
   if (loading) {
     return (
       <div className="rounded-2xl border border-slate-800 bg-[#0e2131] p-6 text-slate-400">
@@ -634,6 +765,87 @@ export function PredictionList({
             </p>
           )}
       </div>
+
+      {nextMatchWithoutPrediction && (
+        <section
+          aria-live="polite"
+          className={`mt-5 rounded-2xl border p-4 sm:p-5 ${
+            urgentReminder
+              ? "border-amber-400/50 bg-amber-400/10"
+              : "border-sky-400/30 bg-sky-400/10"
+          }`}
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className="text-xl"
+                >
+                  🔔
+                </span>
+
+                <strong
+                  className={
+                    urgentReminder
+                      ? "text-amber-300"
+                      : "text-sky-300"
+                  }
+                >
+                  {urgentReminder
+                    ? `Faltam ${minutesUntilNextMatch} minutos para o próximo jogo`
+                    : matchesWithoutPrediction.length ===
+                        1
+                      ? "Você ainda tem 1 partida sem palpite"
+                      : `Você ainda tem ${matchesWithoutPrediction.length} partidas sem palpite`}
+                </strong>
+              </div>
+
+              <p className="mt-2 text-sm text-slate-300">
+                Próxima:{" "}
+                <strong>
+                  {
+                    nextMatchWithoutPrediction
+                      .homeTeam.name
+                  }
+                  {" × "}
+                  {
+                    nextMatchWithoutPrediction
+                      .awayTeam.name
+                  }
+                </strong>
+                {nextMatchDateLabel && (
+                  <>
+                    {" · "}
+                    {nextMatchDateLabel}
+                  </>
+                )}
+              </p>
+
+              {urgentReminder && (
+                <p className="mt-1 text-xs font-bold text-amber-300">
+                  Envie seu palpite antes do
+                  início da partida.
+                </p>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={
+                goToNextMatchWithoutPrediction
+              }
+              className={`w-full shrink-0 rounded-xl px-5 py-2.5 text-sm font-extrabold transition sm:w-auto ${
+                urgentReminder
+                  ? "bg-amber-300 text-slate-950 hover:bg-amber-200"
+                  : "bg-sky-300 text-slate-950 hover:bg-sky-200"
+              }`}
+            >
+              Ir para o próximo palpite
+            </button>
+          </div>
+        </section>
+      )}
 
       {matches.length === 0 ? (
         <div className="mt-5 rounded-2xl border border-slate-800 bg-[#0e2131] p-6 text-slate-400">
@@ -904,6 +1116,7 @@ function PredictionEditor({
 
   return (
     <form
+      id={`prediction-${match.id}`}
       onSubmit={handleSubmit}
       className={`rounded-2xl border bg-[#0e2131] p-4 sm:p-5 ${getPredictionCardStyle(
         predictionEvaluation,
