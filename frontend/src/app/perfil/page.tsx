@@ -47,6 +47,7 @@ export default async function ProfilePage({
         social_following_status,
         followed_social_networks,
         social_following_answered,
+        email_prediction_reminders_enabled,
         created_at
       `)
       .eq("id", user.id)
@@ -218,7 +219,7 @@ export default async function ProfilePage({
         </div>
       </section>
 
-      <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <InformationCard
           label="E-mail"
           value={
@@ -254,6 +255,17 @@ export default async function ProfilePage({
           label="Redes sociais"
           value={socialNetworksSummary}
           detail="Varanda Esportes"
+        />
+
+        <InformationCard
+          label="Lembretes"
+          value={
+            profile
+              .email_prediction_reminders_enabled
+              ? "Ativados"
+              : "Desativados"
+          }
+          detail="30 minutos antes"
         />
       </section>
 
@@ -389,6 +401,37 @@ export default async function ProfilePage({
               }
             />
           </div>
+
+          <label className="flex cursor-pointer items-start gap-4 rounded-2xl border border-slate-700 bg-slate-950/40 p-5 transition hover:border-lime-400/50 sm:col-span-2">
+            <input
+              name="emailPredictionRemindersEnabled"
+              type="checkbox"
+              value="true"
+              defaultChecked={
+                profile
+                  .email_prediction_reminders_enabled
+              }
+              className="mt-1 h-5 w-5 shrink-0 accent-lime-400"
+            />
+
+            <span className="min-w-0">
+              <strong className="block text-sm text-white">
+                Lembretes de palpites por e-mail
+              </strong>
+
+              <span className="mt-1 block text-sm leading-6 text-slate-400">
+                Receber um aviso aproximadamente
+                30 minutos antes de uma partida
+                quando ainda não houver um palpite
+                registrado.
+              </span>
+
+              <span className="mt-2 block text-xs text-slate-500">
+                Você poderá alterar esta preferência
+                sempre que quiser.
+              </span>
+            </span>
+          </label>
 
           <label className="block sm:col-span-2">
             <span className="mb-2 block text-sm font-bold text-slate-300">

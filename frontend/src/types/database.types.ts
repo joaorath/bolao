@@ -375,6 +375,7 @@ export type Database = {
         Row: {
           birth_date: string | null
           created_at: string
+          email_prediction_reminders_enabled: boolean
           favorite_team_id: string | null
           followed_social_networks: string[]
           full_name: string
@@ -388,6 +389,7 @@ export type Database = {
         Insert: {
           birth_date?: string | null
           created_at?: string
+          email_prediction_reminders_enabled?: boolean
           favorite_team_id?: string | null
           followed_social_networks?: string[]
           full_name?: string
@@ -401,6 +403,7 @@ export type Database = {
         Update: {
           birth_date?: string | null
           created_at?: string
+          email_prediction_reminders_enabled?: boolean
           favorite_team_id?: string | null
           followed_social_networks?: string[]
           full_name?: string

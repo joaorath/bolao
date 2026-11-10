@@ -55,6 +55,12 @@ export async function updateProfile(
     "favoriteTeamId",
   );
 
+  const emailPredictionRemindersEnabled =
+    getText(
+      formData,
+      "emailPredictionRemindersEnabled",
+    ) === "true";
+
   const allowedSocialNetworks: string[] = [
     "INSTAGRAM",
     "YOUTUBE",
@@ -239,6 +245,8 @@ export async function updateProfile(
           followedSocialNetworks,
         social_following_answered:
           socialFollowingAnswered,
+        email_prediction_reminders_enabled:
+          emailPredictionRemindersEnabled,
         updated_at:
           new Date().toISOString(),
       })
@@ -269,6 +277,8 @@ export async function updateProfile(
           followedSocialNetworks,
         social_following_answered:
           socialFollowingAnswered,
+        email_prediction_reminders_enabled:
+          emailPredictionRemindersEnabled,
       },
     });
 
