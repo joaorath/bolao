@@ -193,6 +193,48 @@ export default async function SignupPage({
 
           <fieldset>
             <legend className="text-lg font-extrabold">
+              Lembretes
+            </legend>
+
+            <p className="mt-1 text-sm text-slate-400">
+              Ajude a evitar partidas sem palpite.
+            </p>
+
+            <label className="mt-5 flex cursor-pointer items-start gap-4 rounded-2xl border border-slate-700 bg-slate-950/40 p-5 transition hover:border-lime-400/50">
+              <input
+                name="emailPredictionRemindersEnabled"
+                type="checkbox"
+                value="true"
+                defaultChecked
+                className="mt-1 h-5 w-5 shrink-0 accent-lime-400"
+              />
+
+              <span className="min-w-0">
+                <strong className="block text-sm text-white">
+                  Receber lembretes de palpites
+                  por e-mail
+                </strong>
+
+                <span className="mt-1 block text-sm leading-6 text-slate-400">
+                  Enviaremos um aviso aproximadamente
+                  30 minutos antes de uma partida
+                  quando você ainda não tiver
+                  registrado seu palpite.
+                </span>
+
+                <span className="mt-2 block text-xs text-slate-500">
+                  Esta opção começa ativada e pode
+                  ser alterada a qualquer momento
+                  na página de perfil.
+                </span>
+              </span>
+            </label>
+          </fieldset>
+
+          <div className="border-t border-slate-800" />
+
+          <fieldset>
+            <legend className="text-lg font-extrabold">
               Acesso à conta
             </legend>
 

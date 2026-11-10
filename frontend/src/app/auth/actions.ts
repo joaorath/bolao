@@ -166,6 +166,12 @@ export async function signup(
       "socialFollowingAnswered",
     ) === "true";
 
+  const emailPredictionRemindersEnabled =
+    getText(
+      formData,
+      "emailPredictionRemindersEnabled",
+    ) === "true";
+
   const followedSocialNetworks =
     socialFollowingAnswered
       ? Array.from(
@@ -369,6 +375,8 @@ export async function signup(
             followedSocialNetworks,
           social_following_answered:
             socialFollowingAnswered,
+          email_prediction_reminders_enabled:
+            emailPredictionRemindersEnabled,
         },
       },
     });
