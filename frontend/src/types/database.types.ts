@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -11,6 +11,31 @@ export type Database = {
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.17"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -326,6 +351,56 @@ export type Database = {
           },
         ]
       }
+      prediction_email_reminder_deliveries: {
+        Row: {
+          attempt_count: number
+          claimed_at: string
+          created_at: string
+          id: string
+          last_error: string | null
+          match_id: string
+          provider_message_id: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempt_count?: number
+          claimed_at?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          match_id: string
+          provider_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempt_count?: number
+          claimed_at?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          match_id?: string
+          provider_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prediction_email_reminder_deliveries_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       predictions: {
         Row: {
           away_score: number
@@ -462,6 +537,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_due_prediction_email_reminders: {
+        Args: { claim_limit?: number }
+        Returns: {
+          away_team_name: string
+          competition: string
+          delivery_id: string
+          home_team_name: string
+          match_id: string
+          recipient_email: string
+          recipient_name: string
+          round: number
+          starts_at: string
+          user_id: string
+        }[]
+      }
       claim_manual_api_football_request: {
         Args: {
           request_date_value: string
@@ -786,6 +876,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

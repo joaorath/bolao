@@ -145,8 +145,10 @@ export async function updateSession(
       "/redefinir-senha" ||
     pathname.startsWith("/auth/") ||
     pathname ===
-      "/api/cron/football-sync"   ||
-      isPublicMetadataRoute;
+      "/api/cron/football-sync" ||
+    pathname ===
+      "/api/cron/prediction-reminders" ||
+    isPublicMetadataRoute;
 
   if (
     !isAuthenticated &&
