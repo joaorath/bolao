@@ -552,6 +552,24 @@ export type Database = {
           user_id: string
         }[]
       }
+      claim_due_prediction_email_reminders_v2: {
+        Args: { claim_limit?: number }
+        Returns: {
+          away_team_name: string
+          competition: string
+          delivery_id: string
+          home_team_name: string
+          match_id: string
+          pool_id: string
+          pool_is_global: boolean
+          pool_name: string
+          recipient_email: string
+          recipient_name: string
+          round: number
+          starts_at: string
+          user_id: string
+        }[]
+      }
       claim_manual_api_football_request: {
         Args: {
           request_date_value: string

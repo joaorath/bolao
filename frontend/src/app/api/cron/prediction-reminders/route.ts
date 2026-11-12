@@ -130,6 +130,15 @@ export async function POST(
                 recipientName:
                 "João",
 
+                poolId:
+                "4675f738-6adc-45e9-b939-e98a1f729d3f",
+
+                poolName:
+                "Homologação Série B",
+
+                poolIsGlobal:
+                false,
+
                 competition:
                 "Teste de lembrete",
 
@@ -191,7 +200,7 @@ export async function POST(
     data,
     error: claimError,
   } = await supabase.rpc(
-    "claim_due_prediction_email_reminders",
+    "claim_due_prediction_email_reminders_v2",
     {
       claim_limit:
         CLAIM_LIMIT,
@@ -243,6 +252,15 @@ export async function POST(
 
                 recipientName:
                   reminder.recipient_name,
+
+                poolId:
+                    reminder.pool_id,
+
+                    poolName:
+                    reminder.pool_name,
+
+                    poolIsGlobal:
+                    reminder.pool_is_global,
 
                 competition:
                   reminder.competition,

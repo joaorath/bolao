@@ -95,8 +95,23 @@ export default function PredictionsPage() {
         (pool) => pool.is_global,
       );
 
+      const requestedPoolId =
+        new URLSearchParams(
+          window.location.search,
+        ).get("poolId");
+
+      const requestedPool =
+        requestedPoolId
+          ? loadedPools.find(
+              (pool) =>
+                pool.id ===
+                requestedPoolId,
+            )
+          : undefined;
+
       setSelectedPoolId(
-        globalPool?.id ??
+        requestedPool?.id ??
+          globalPool?.id ??
           loadedPools[0]?.id ??
           "",
       );

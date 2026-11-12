@@ -2,6 +2,9 @@ type SendPredictionReminderInput = {
   deliveryId: string;
   recipientEmail: string;
   recipientName: string;
+  poolId: string;
+  poolName: string;
+  poolIsGlobal: boolean;
   competition: string;
   round: number;
   startsAt: string;
@@ -61,6 +64,9 @@ export async function sendPredictionReminder({
   deliveryId,
   recipientEmail,
   recipientName,
+  poolId,
+  poolName,
+  poolIsGlobal,
   competition,
   round,
   startsAt,
@@ -95,6 +101,19 @@ export async function sendPredictionReminder({
   const safeRecipientName =
     escapeHtml(recipientName);
 
+  const safePoolName =
+    escapeHtml(poolName);
+
+  const predictionLocation =
+    poolIsGlobal
+        ? "no Ranking Geral"
+        : `no bolão ${poolName}`;
+
+  const safePredictionLocation =
+    escapeHtml(
+        predictionLocation,
+    );
+
   const safeCompetition =
     escapeHtml(competition);
 
@@ -105,7 +124,9 @@ export async function sendPredictionReminder({
     escapeHtml(awayTeamName);
 
   const predictionUrl =
-    `${siteUrl}/palpites`;
+    `${siteUrl}/palpites?poolId=${
+        encodeURIComponent(poolId)
+    }`;
 
   const subject =
     `Seu palpite está esperando: ${homeTeamName} x ${awayTeamName}`;
@@ -113,9 +134,10 @@ export async function sendPredictionReminder({
   const textContent = [
     `Olá, ${recipientName}!`,
     "",
-    "A partida está prestes a começar e você ainda não registrou seu palpite no Ranking Geral.",
+    `A partida está prestes a começar e você ainda não registrou seu palpite ${predictionLocation}.`,
     "",
     `${homeTeamName} x ${awayTeamName}`,
+    `Bolão: ${poolName}`,
     `${competition} · Rodada ${round}`,
     matchDate,
     "",
@@ -143,7 +165,7 @@ export async function sendPredictionReminder({
             <div style="padding:28px;">
               <p style="margin:0 0 20px;color:#cbd5e1;font-size:16px;line-height:1.6;">
                 Olá, <strong style="color:#ffffff;">${safeRecipientName}</strong>!
-                A partida está prestes a começar e você ainda não registrou seu palpite no Ranking Geral.
+                A partida está prestes a começar e você ainda não registrou seu palpite ${safePredictionLocation}.
               </p>
 
               <div style="padding:22px;background:#071421;border:1px solid #334155;border-radius:16px;text-align:center;">
@@ -151,6 +173,10 @@ export async function sendPredictionReminder({
                   ${safeHomeTeam}
                   <span style="color:#64748b;"> × </span>
                   ${safeAwayTeam}
+                </div>
+
+                <div style="margin-top:12px;color:#a3e635;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:1px;">
+                    ${safePoolName}
                 </div>
 
                 <div style="margin-top:10px;color:#94a3b8;font-size:14px;">
