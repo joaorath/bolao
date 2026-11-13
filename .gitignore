@@ -1,0 +1,17 @@
+# Dependências
+node_modules/
+**/node_modules/
+
+# Builds
+.next/
+**/.next/
+dist/
+**/dist/
+
+# Variáveis locais
+.env
+.env.*
+!.env.example
+
+# Configuração local do frontend
+frontend/.env.local

@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+:root {
+  --background: #071421;
+  --foreground: #f5f8fa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(
+      circle at 70% 0%,
+      #102b3f 0,
+      transparent 28%
+    ),
+    var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
