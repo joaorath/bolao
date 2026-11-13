@@ -73,7 +73,7 @@ export default async function LoginPage({
               type="password"
               autoComplete="current-password"
               required
-              minLength={6}
+              minLength={8}
               placeholder="Sua senha"
               className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-lime-400"
             />
