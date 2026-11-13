@@ -36,6 +36,27 @@ function authError(
   };
 }
 
+function getSafeLoginRedirectPath(
+  formData: FormData,
+) {
+  const requestedPath = getText(
+    formData,
+    "next",
+  );
+
+  if (
+    !requestedPath.startsWith("/") ||
+    requestedPath.startsWith("//") ||
+    requestedPath.includes("\\") ||
+    requestedPath.startsWith("/login") ||
+    requestedPath.startsWith("/cadastro")
+  ) {
+    return "/perfil";
+  }
+
+  return requestedPath;
+}
+
 export async function login(
   formData: FormData,
 ): Promise<AuthActionResult> {
@@ -51,6 +72,11 @@ export async function login(
     typeof passwordValue === "string"
       ? passwordValue
       : "";
+
+  const redirectPath =
+    getSafeLoginRedirectPath(
+      formData,
+    );
 
   if (!email || !password) {
     return authError(
@@ -95,7 +121,7 @@ export async function login(
     }
 
   revalidatePath("/", "layout");
-  redirect("/perfil");
+  redirect(redirectPath);
 }
 
 export async function signup(

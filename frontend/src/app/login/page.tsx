@@ -8,6 +8,7 @@ type LoginPageProps = {
   searchParams: Promise<{
     error?: string;
     message?: string;
+    next?: string;
   }>;
 };
 
@@ -48,6 +49,14 @@ export default async function LoginPage({
           sensitiveFields={["password"]}
           className="mt-7 space-y-5"
         >
+          {params.next && (
+            <input
+              type="hidden"
+              name="next"
+              value={params.next}
+            />
+          )}
+
           <label className="block">
             <span className="mb-2 block text-sm font-bold text-slate-300">
               E-mail

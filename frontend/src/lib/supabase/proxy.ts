@@ -53,7 +53,6 @@ export async function updateSession(
       process.env
         .NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
       {
-        
         cookies: {
           getAll() {
             return request.cookies.getAll();
@@ -154,11 +153,21 @@ export async function updateSession(
     !isAuthenticated &&
     !isPublicAuthRoute
   ) {
+    const requestedPath =
+      `${pathname}${
+        request.nextUrl.search
+      }`;
+
     const loginUrl =
       request.nextUrl.clone();
 
     loginUrl.pathname = "/login";
     loginUrl.search = "";
+
+    loginUrl.searchParams.set(
+      "next",
+      requestedPath,
+    );
 
     return copySessionToResponse(
       supabaseResponse,
